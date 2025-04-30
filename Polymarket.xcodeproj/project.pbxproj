@@ -6,8 +6,46 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4A5356802DBE1BA5006EEFAB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A53567F2DBE1BA5006EEFAB /* WidgetKit.framework */; };
+		4A5356822DBE1BA5006EEFAB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A5356812DBE1BA5006EEFAB /* SwiftUI.framework */; };
+		4A5356902DBE1BA7006EEFAB /* ProfitLossExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4A5356AE2DC2D435006EEFAB /* ReownAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356AD2DC2D435006EEFAB /* ReownAppKit */; };
+		4A5356B02DC2D435006EEFAB /* ReownAppKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356AF2DC2D435006EEFAB /* ReownAppKitUI */; };
+		4A5356B22DC2D435006EEFAB /* ReownRouter in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356B12DC2D435006EEFAB /* ReownRouter */; };
+		4A5356B42DC2D435006EEFAB /* ReownWalletKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356B32DC2D435006EEFAB /* ReownWalletKit */; };
+		4A5356B62DC2D435006EEFAB /* WalletConnect in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356B52DC2D435006EEFAB /* WalletConnect */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		4A53568E2DBE1BA7006EEFAB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4A53565E2DBE1687006EEFAB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4A53567C2DBE1BA5006EEFAB;
+			remoteInfo = ProfitLossExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4A5356952DBE1BA7006EEFAB /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				4A5356902DBE1BA7006EEFAB /* ProfitLossExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		4A5356662DBE1687006EEFAB /* Polymarket.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Polymarket.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ProfitLossExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4A53567F2DBE1BA5006EEFAB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
+		4A5356812DBE1BA5006EEFAB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -17,6 +55,13 @@
 				Info.plist,
 			);
 			target = 4A5356652DBE1687006EEFAB /* Polymarket */;
+		};
+		4A5356942DBE1BA7006EEFAB /* Exceptions for "ProfitLoss" folder in "ProfitLossExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -29,6 +74,14 @@
 			path = Polymarket;
 			sourceTree = "<group>";
 		};
+		4A5356832DBE1BA5006EEFAB /* ProfitLoss */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4A5356942DBE1BA7006EEFAB /* Exceptions for "ProfitLoss" folder in "ProfitLossExtension" target */,
+			);
+			path = ProfitLoss;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -36,6 +89,20 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4A5356AE2DC2D435006EEFAB /* ReownAppKit in Frameworks */,
+				4A5356B62DC2D435006EEFAB /* WalletConnect in Frameworks */,
+				4A5356B02DC2D435006EEFAB /* ReownAppKitUI in Frameworks */,
+				4A5356B42DC2D435006EEFAB /* ReownWalletKit in Frameworks */,
+				4A5356B22DC2D435006EEFAB /* ReownRouter in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4A53567A2DBE1BA5006EEFAB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4A5356822DBE1BA5006EEFAB /* SwiftUI.framework in Frameworks */,
+				4A5356802DBE1BA5006EEFAB /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +113,8 @@
 			isa = PBXGroup;
 			children = (
 				4A5356682DBE1687006EEFAB /* Polymarket */,
+				4A5356832DBE1BA5006EEFAB /* ProfitLoss */,
+				4A53567E2DBE1BA5006EEFAB /* Frameworks */,
 				4A5356672DBE1687006EEFAB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,8 +123,18 @@
 			isa = PBXGroup;
 			children = (
 				4A5356662DBE1687006EEFAB /* Polymarket.app */,
+				4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		4A53567E2DBE1BA5006EEFAB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				4A53567F2DBE1BA5006EEFAB /* WidgetKit.framework */,
+				4A5356812DBE1BA5006EEFAB /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -68,20 +147,49 @@
 				4A5356622DBE1687006EEFAB /* Sources */,
 				4A5356632DBE1687006EEFAB /* Frameworks */,
 				4A5356642DBE1687006EEFAB /* Resources */,
+				4A5356952DBE1BA7006EEFAB /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				4A53568F2DBE1BA7006EEFAB /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				4A5356682DBE1687006EEFAB /* Polymarket */,
 			);
 			name = Polymarket;
 			packageProductDependencies = (
+				4A5356AD2DC2D435006EEFAB /* ReownAppKit */,
+				4A5356AF2DC2D435006EEFAB /* ReownAppKitUI */,
+				4A5356B12DC2D435006EEFAB /* ReownRouter */,
+				4A5356B32DC2D435006EEFAB /* ReownWalletKit */,
+				4A5356B52DC2D435006EEFAB /* WalletConnect */,
 			);
 			productName = Polymarket;
 			productReference = 4A5356662DBE1687006EEFAB /* Polymarket.app */;
 			productType = "com.apple.product-type.application";
+		};
+		4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4A5356912DBE1BA7006EEFAB /* Build configuration list for PBXNativeTarget "ProfitLossExtension" */;
+			buildPhases = (
+				4A5356792DBE1BA5006EEFAB /* Sources */,
+				4A53567A2DBE1BA5006EEFAB /* Frameworks */,
+				4A53567B2DBE1BA5006EEFAB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				4A5356832DBE1BA5006EEFAB /* ProfitLoss */,
+			);
+			name = ProfitLossExtension;
+			packageProductDependencies = (
+			);
+			productName = ProfitLossExtension;
+			productReference = 4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -96,6 +204,9 @@
 					4A5356652DBE1687006EEFAB = {
 						CreatedOnToolsVersion = 16.3;
 					};
+					4A53567C2DBE1BA5006EEFAB = {
+						CreatedOnToolsVersion = 16.3;
+					};
 				};
 			};
 			buildConfigurationList = 4A5356612DBE1687006EEFAB /* Build configuration list for PBXProject "Polymarket" */;
@@ -107,18 +218,29 @@
 			);
 			mainGroup = 4A53565D2DBE1687006EEFAB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4A5356672DBE1687006EEFAB /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				4A5356652DBE1687006EEFAB /* Polymarket */,
+				4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		4A5356642DBE1687006EEFAB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4A53567B2DBE1BA5006EEFAB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +257,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		4A5356792DBE1BA5006EEFAB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		4A53568F2DBE1BA7006EEFAB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */;
+			targetProxy = 4A53568E2DBE1BA7006EEFAB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		4A5356752DBE1689006EEFAB /* Debug */ = {
@@ -334,6 +471,84 @@
 			};
 			name = Release;
 		};
+		4A5356922DBE1BA7006EEFAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = ProfitLoss/ProfitLoss.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 73N8SZQ662;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ProfitLoss/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ProfitLoss;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ondrejbarta.Polymarket.ProfitLoss;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.4;
+			};
+			name = Debug;
+		};
+		4A5356932DBE1BA7006EEFAB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = ProfitLoss/ProfitLoss.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 73N8SZQ662;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ProfitLoss/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ProfitLoss;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ondrejbarta.Polymarket.ProfitLoss;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 2.4;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -355,7 +570,55 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		4A5356912DBE1BA7006EEFAB /* Build configuration list for PBXNativeTarget "ProfitLossExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4A5356922DBE1BA7006EEFAB /* Debug */,
+				4A5356932DBE1BA7006EEFAB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/reown-com/reown-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.6.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4A5356AD2DC2D435006EEFAB /* ReownAppKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownAppKit;
+		};
+		4A5356AF2DC2D435006EEFAB /* ReownAppKitUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownAppKitUI;
+		};
+		4A5356B12DC2D435006EEFAB /* ReownRouter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownRouter;
+		};
+		4A5356B32DC2D435006EEFAB /* ReownWalletKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = ReownWalletKit;
+		};
+		4A5356B52DC2D435006EEFAB /* WalletConnect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnect;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4A53565E2DBE1687006EEFAB /* Project object */;
 }
