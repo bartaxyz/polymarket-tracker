@@ -13,8 +13,6 @@ extension WebSocket: WebSocketConnecting { }
 
 struct DefaultSocketFactory: WebSocketFactory {
     func create(with url: URL) -> WebSocketConnecting {
-        var urlRequest = URLRequest(url: url)
-        urlRequest.addValue("ondrejbarta.com", forHTTPHeaderField: "Origin")
-        return WebSocket(request: urlRequest)
+        return WebSocket(url: url)
     }
 }
