@@ -9,9 +9,14 @@ import WidgetKit
 import AppIntents
 
 struct ConfigurationAppIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "Profit & Loss" }
+    static var title: LocalizedStringResource { "Profit & Loss" }
     static var description: IntentDescription { "Real-time Polymarket P&L for your wallet" }
     
-    @Parameter(title: "Wallet Address")
-    var walletAddress: String?
+    /*
+     @Parameter(
+        title: "Polymarket Wallet",
+        default: nil
+    )
+    public var wallet: WalletEntity?
+     */
 }

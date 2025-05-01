@@ -58,6 +58,13 @@
 			);
 			target = 4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */;
 		};
+		4A5357092DC3C47F006EEFAB /* Exceptions for "ProfitLoss" folder in "Polymarket" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WalletEntity.swift,
+			);
+			target = 4A5356652DBE1687006EEFAB /* Polymarket */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -72,6 +79,7 @@
 		4A5356832DBE1BA5006EEFAB /* ProfitLoss */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
+				4A5357092DC3C47F006EEFAB /* Exceptions for "ProfitLoss" folder in "Polymarket" target */,
 				4A5356942DBE1BA7006EEFAB /* Exceptions for "ProfitLoss" folder in "ProfitLossExtension" target */,
 			);
 			path = ProfitLoss;
@@ -461,6 +469,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = ProfitLoss/ProfitLoss.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 73N8SZQ662;
@@ -484,6 +493,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ondrejbarta.Polymarket.ProfitLoss;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
@@ -500,6 +511,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = ProfitLoss/ProfitLoss.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 73N8SZQ662;
@@ -523,6 +535,8 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.ondrejbarta.Polymarket.ProfitLoss;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";

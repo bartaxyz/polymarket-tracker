@@ -7,6 +7,7 @@
 
 import WidgetKit
 import SwiftUI
+import SwiftData
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
@@ -14,7 +15,8 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(date: Date(), configuration: configuration)
+        let entry = SimpleEntry(date: Date(), configuration: configuration)
+        return entry
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
@@ -45,10 +47,21 @@ struct ProfitLossEntryView : View {
     var entry: Provider.Entry
 
     var body: some View {
-        Text("Profit & Loss")
-            .bold()
-        Text("Wallet Address:")
-        Text(entry.configuration.walletAddress ?? "No wallet connected")
+        VStack {
+            Text("Profit & Loss")
+                .bold()
+                .padding(.bottom, 4)
+            
+            /*if let wallet = entry.configuration.wallet {
+                Text("Wallet:")
+                    .font(.caption)
+                Text(wallet.displayAddress)
+                    .font(.caption2)
+            } else {
+                Text("No wallet selected")
+                    .font(.caption)
+            }*/
+        }
     }
 }
 
@@ -61,24 +74,4 @@ struct ProfitLoss: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
     }
-}
-
-extension ConfigurationAppIntent {
-    fileprivate static var noWalletAddress: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        return intent
-    }
-    
-    fileprivate static var withWalletAddress: ConfigurationAppIntent {
-        let intent = ConfigurationAppIntent()
-        intent.walletAddress = "0x8Dc1Ec002D1D7071b4aA5e14dFf44cEc9cd60677"
-        return intent
-    }
-}
-
-#Preview(as: .systemSmall) {
-    ProfitLoss()
-} timeline: {
-    SimpleEntry(date: .now, configuration: .noWalletAddress)
-    SimpleEntry(date: .now, configuration: .withWalletAddress)
 }

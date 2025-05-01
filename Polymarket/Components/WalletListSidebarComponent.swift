@@ -20,7 +20,7 @@ struct WalletListSidebarComponent: View {
                     } label: {
                         Image(systemName: "wallet.bifold")
                         VStack(alignment: .leading) {
-                            Text(wallet.compressedPolymarketAddress)
+                            Text(wallet.compressedPolymarketAddress!)
                             Text("$1 000 000")
                                 .font(.caption)
                                 .opacity(0.5)

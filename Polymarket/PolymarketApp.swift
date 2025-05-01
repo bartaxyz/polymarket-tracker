@@ -17,18 +17,8 @@ import ReownAppKit
 
 @main
 struct PolymarketApp: App {
-    
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            WalletConnectModel.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
+        return SharedModelContainer.container
     }()
     
 #if os(iOS)
