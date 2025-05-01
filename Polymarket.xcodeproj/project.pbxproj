@@ -15,6 +15,10 @@
 		4A5356B22DC2D435006EEFAB /* ReownRouter in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356B12DC2D435006EEFAB /* ReownRouter */; };
 		4A5356B42DC2D435006EEFAB /* ReownWalletKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356B32DC2D435006EEFAB /* ReownWalletKit */; };
 		4A5356B62DC2D435006EEFAB /* WalletConnect in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356B52DC2D435006EEFAB /* WalletConnect */; };
+		4A5356C22DC2EB41006EEFAB /* Web3 in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356C12DC2EB41006EEFAB /* Web3 */; };
+		4A5356C42DC2EB41006EEFAB /* Web3ContractABI in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356C32DC2EB41006EEFAB /* Web3ContractABI */; };
+		4A5356C62DC2EB41006EEFAB /* Web3PromiseKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356C52DC2EB41006EEFAB /* Web3PromiseKit */; };
+		4A5356CF2DC2F61C006EEFAB /* Starscream in Frameworks */ = {isa = PBXBuildFile; productRef = 4A5356CE2DC2F61C006EEFAB /* Starscream */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,8 +96,12 @@
 				4A5356AE2DC2D435006EEFAB /* ReownAppKit in Frameworks */,
 				4A5356B62DC2D435006EEFAB /* WalletConnect in Frameworks */,
 				4A5356B02DC2D435006EEFAB /* ReownAppKitUI in Frameworks */,
+				4A5356C22DC2EB41006EEFAB /* Web3 in Frameworks */,
 				4A5356B42DC2D435006EEFAB /* ReownWalletKit in Frameworks */,
 				4A5356B22DC2D435006EEFAB /* ReownRouter in Frameworks */,
+				4A5356C62DC2EB41006EEFAB /* Web3PromiseKit in Frameworks */,
+				4A5356C42DC2EB41006EEFAB /* Web3ContractABI in Frameworks */,
+				4A5356CF2DC2F61C006EEFAB /* Starscream in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -164,6 +172,10 @@
 				4A5356B12DC2D435006EEFAB /* ReownRouter */,
 				4A5356B32DC2D435006EEFAB /* ReownWalletKit */,
 				4A5356B52DC2D435006EEFAB /* WalletConnect */,
+				4A5356C12DC2EB41006EEFAB /* Web3 */,
+				4A5356C32DC2EB41006EEFAB /* Web3ContractABI */,
+				4A5356C52DC2EB41006EEFAB /* Web3PromiseKit */,
+				4A5356CE2DC2F61C006EEFAB /* Starscream */,
 			);
 			productName = Polymarket;
 			productReference = 4A5356662DBE1687006EEFAB /* Polymarket.app */;
@@ -220,6 +232,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */,
+				4A5356C02DC2EADA006EEFAB /* XCRemoteSwiftPackageReference "Web3" */,
+				4A5356CD2DC2F61C006EEFAB /* XCRemoteSwiftPackageReference "Starscream" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4A5356672DBE1687006EEFAB /* Products */;
@@ -590,6 +604,22 @@
 				minimumVersion = 1.6.2;
 			};
 		};
+		4A5356C02DC2EADA006EEFAB /* XCRemoteSwiftPackageReference "Web3" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Boilertalk/Web3.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.8.8;
+			};
+		};
+		4A5356CD2DC2F61C006EEFAB /* XCRemoteSwiftPackageReference "Starscream" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/daltoniam/Starscream";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.1.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -617,6 +647,26 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4A5356AC2DC2D435006EEFAB /* XCRemoteSwiftPackageReference "reown-swift" */;
 			productName = WalletConnect;
+		};
+		4A5356C12DC2EB41006EEFAB /* Web3 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356C02DC2EADA006EEFAB /* XCRemoteSwiftPackageReference "Web3" */;
+			productName = Web3;
+		};
+		4A5356C32DC2EB41006EEFAB /* Web3ContractABI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356C02DC2EADA006EEFAB /* XCRemoteSwiftPackageReference "Web3" */;
+			productName = Web3ContractABI;
+		};
+		4A5356C52DC2EB41006EEFAB /* Web3PromiseKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356C02DC2EADA006EEFAB /* XCRemoteSwiftPackageReference "Web3" */;
+			productName = Web3PromiseKit;
+		};
+		4A5356CE2DC2F61C006EEFAB /* Starscream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A5356CD2DC2F61C006EEFAB /* XCRemoteSwiftPackageReference "Starscream" */;
+			productName = Starscream;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
