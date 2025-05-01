@@ -5,6 +5,7 @@
 //  Created by Ondřej Bárta on 1/5/25.
 //
 
+#if os(iOS)
 import Foundation
 import Web3
 
@@ -30,3 +31,4 @@ struct DefaultCryptoProvider: CryptoProvider {
     }
 
 }
+#endif

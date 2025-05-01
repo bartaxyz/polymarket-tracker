@@ -5,6 +5,7 @@
 //  Created by Ondřej Bárta on 1/5/25.
 //
 
+#if os(iOS)
 import Foundation
 import WalletConnectRelay
 import Starscream
@@ -16,3 +17,4 @@ struct DefaultSocketFactory: WebSocketFactory {
         return WebSocket(url: url)
     }
 }
+#endif

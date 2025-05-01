@@ -8,54 +8,70 @@
 import SwiftUI
 import SwiftData
 
+#if os(iOS)
 import ReownAppKit
+#endif
 
-struct WalletConnectView: View {
+struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var wallets: [WalletConnectModel]
     
+    @State var isConnectWalletPresented: Bool = false
+    
     var body: some View {
         NavigationSplitView {
-            List {
-                ForEach(wallets) { wallet in
-                    NavigationLink {
-                        Text("Item at \(wallet.createdAt, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(wallet.createdAt, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+            VStack {
+                if !wallets.isEmpty {
+                    WalletListSidebarComponent(
+                        wallets: wallets,
+                        deleteWallets: deleteWallets
+                    )
+                } else {
+                    EmptySidebarComponent(action: connectWallet)
                 }
-                .onDelete(perform: deleteWallets)
             }
 #if os(macOS)
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
 #endif
+            .toolbar(removing: .sidebarToggle)
             .toolbar {
 #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
                 }
-#endif
                 ToolbarItem {
                     AppKitButton()
                 }
-                ToolbarItem {
-                    Web3ModalNetworkButton()
-                }
-                ToolbarItem {
-                    Button(action: connectWallet) {
-                        Label("Connect Wallet", systemImage: "wallet.bifold")
+#endif
+                if !wallets.isEmpty {
+                    ToolbarItem {
+                        Spacer()
+                    }
+                    
+                    ToolbarItem {
+                        Button(action: connectWallet) {
+                            Label("Connect Wallet", systemImage: "plus")
+                        }
                     }
                 }
             }
         } detail: {
             Text("Select an item")
         }
+        .navigationTitle("Polymarket Widgets")
+        .sheet(isPresented: $isConnectWalletPresented) {
+            ConnectWalletManuallyView()
+        }
     }
     
     private func connectWallet() {
+        isConnectWalletPresented.toggle()
+        
         // TODO:
         // - WalletConnect
         // - Polymarket address lookup
+        
+        // AppKit.present()
         
         /*withAnimation {
             let newWallet = WalletConnectModel(
@@ -64,6 +80,10 @@ struct WalletConnectView: View {
             )
             modelContext.insert(newWallet)
         }*/
+    }
+    
+    private func disconnectWallet() {
+        // try! await AppKit.instance.disconnect(topic: "manual")
     }
     
     private func deleteWallets(offsets: IndexSet) {
@@ -76,5 +96,5 @@ struct WalletConnectView: View {
 }
 
 #Preview {
-    WalletConnectView()
+    HomeView()
 }
