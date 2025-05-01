@@ -14,43 +14,47 @@ struct ConnectWalletManuallyView: View {
     @State var error: Error? = nil;
     
     var body: some View {
-        VStack(alignment: .leading) {
-            Spacer()
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Copy & paste your polymarket address")
-                Text("This is not your wallet address. You can find this in the Polymarket UI.")
-                    .font(.caption)
-                    .opacity(0.5)
-            }
-            .padding([.horizontal, .top])
-            
-            Form {
-                TextField("Polymarket Address", text: $polymarketAddress)
-                    .textFieldStyle(.roundedBorder)
+        NavigationStack {
+            VStack {
+                Spacer()
                 
-                if error != nil {
-                    Text("Invalid address format. The address should be in the format of 0x..., and have 36 characters.")
-                        .foregroundStyle(.orange)
+                VStack(spacing: 8) {
+                    Text("Connect your Polymarket address")
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    Text("This is not your wallet address. You can find this in the Polymarket UI.")
+                        .multilineTextAlignment(.center)
                         .font(.caption)
+                        .opacity(0.5)
                 }
-            }
-            .formStyle(.grouped)
-            .frame(minHeight: 80)
-            .toolbar() {
-                ToolbarItem(placement: .destructiveAction) {
-                    Button(action: cancel) {
-                        Text("Cancel")
+                .padding()
+                
+                Form {
+                    TextField("Polymarket Address", text: $polymarketAddress)
+                    
+                    if error != nil {
+                        Text("Invalid address format. The address should be in the format of 0x..., and have 36 characters.")
+                            .foregroundStyle(.orange)
+                            .font(.caption)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(action: connectWallet) {
-                        Text("Connect Wallet")
+                .formStyle(.grouped)
+                .frame(minHeight: 80)
+                .toolbar() {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(action: cancel) {
+                            Text("Cancel")
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(action: connectWallet) {
+                            Text("Connect Wallet")
+                        }
                     }
                 }
+                
+                Spacer()
             }
-            
-            Spacer()
         }
     }
     

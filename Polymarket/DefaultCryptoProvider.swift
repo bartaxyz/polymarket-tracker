@@ -6,6 +6,7 @@
 //
 
 #if os(iOS)
+/*
 import Foundation
 import Web3
 
@@ -31,4 +32,5 @@ struct DefaultCryptoProvider: CryptoProvider {
     }
 
 }
+*/
 #endif

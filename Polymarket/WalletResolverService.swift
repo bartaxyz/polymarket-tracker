@@ -6,6 +6,7 @@
 //
 
 #if os(iOS)
+/*
 import Foundation
 import ReownAppKit
 import WalletConnectRelay
@@ -95,4 +96,5 @@ final class WalletResolverService {
         }.resume()
     }
 }
+*/
 #endif

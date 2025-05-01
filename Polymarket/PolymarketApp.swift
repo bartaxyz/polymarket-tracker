@@ -9,10 +9,12 @@ import SwiftUI
 import SwiftData
 
 #if os(iOS)
+/*
 import ReownWalletKit
 import ReownAppKit
 import WalletConnectSign
 import ReownAppKit
+*/
 #endif
 
 @main
@@ -24,13 +26,16 @@ struct PolymarketApp: App {
     
 #if os(iOS)
     /// Kicks off WalletConnect → Polymarket resolution once per app lifetime
+/*
     private lazy var walletResolverService = WalletResolverService(
         context: sharedModelContainer.mainContext
     )
+*/
 #endif
     
     init() {
 #if os(iOS)
+/*
         let metadata = AppMetadata(
             name: "Polymarket Widgets",
             description: "Widgets for Polymarket",
@@ -57,6 +62,7 @@ struct PolymarketApp: App {
         
         // Start the resolver so it begins listening for sessions
         _ = walletResolverService
+*/
 #endif
     }
 

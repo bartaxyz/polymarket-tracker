@@ -6,6 +6,7 @@
 //
 
 #if os(iOS)
+/*
 import Foundation
 import WalletConnectRelay
 import Starscream
@@ -17,4 +18,5 @@ struct DefaultSocketFactory: WebSocketFactory {
         return WebSocket(url: url)
     }
 }
+*/
 #endif

@@ -9,7 +9,9 @@ import SwiftUI
 import SwiftData
 
 #if os(iOS)
+/*
 import ReownAppKit
+*/
 #endif
 
 struct HomeView: View {
@@ -38,9 +40,6 @@ struct HomeView: View {
 #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
-                }
-                ToolbarItem {
-                    AppKitButton()
                 }
 #endif
                 if !wallets.isEmpty {
