@@ -11,8 +11,8 @@ import SwiftData
 @Model
 final class WalletConnectModel {
     var walletAddress: String?;
-    var createdAt: Date;
-    @Attribute(.unique) var polymarketAddress: String;
+    var createdAt: Date?;
+    var polymarketAddress: String?;
     
     init(walletAddress: String?, polymarketAddress: String) {
         self.walletAddress = walletAddress?.lowercased()
@@ -20,7 +20,8 @@ final class WalletConnectModel {
         self.polymarketAddress = polymarketAddress.lowercased()
     }
     
-    var compressedPolymarketAddress: String {
+    var compressedPolymarketAddress: String? {
+        guard let polymarketAddress = polymarketAddress else { return nil }
         guard polymarketAddress.count > 10 else { return polymarketAddress }
         let prefix = polymarketAddress.prefix(6)
         let suffix = polymarketAddress.suffix(4)

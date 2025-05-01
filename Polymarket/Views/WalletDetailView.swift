@@ -17,13 +17,13 @@ struct WalletDetailView: View {
     
     var body: some View {
         VStack {
-            Text(wallet.polymarketAddress)
+            Text(wallet.polymarketAddress!)
                 .font(.title)
             Text("$1 000 000")
                 .font(.caption)
                 .opacity(0.5)
         }
-        .navigationTitle(wallet.compressedPolymarketAddress)
+        .navigationTitle(wallet.compressedPolymarketAddress!)
         .toolbar {
             ToolbarItem {
                 Button(action: showDeleteConfirmation) {

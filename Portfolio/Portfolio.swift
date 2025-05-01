@@ -7,6 +7,7 @@
 
 import WidgetKit
 import SwiftUI
+import SwiftData
 
 struct Provider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
@@ -42,24 +43,28 @@ struct SimpleEntry: TimelineEntry {
 }
 
 struct PortfolioEntryView : View {
+    @Query var wallets: [WalletConnectModel]
     var entry: Provider.Entry
 
     var body: some View {
-        Text("Time:")
-        Text(entry.date, style: .time)
-
-        Text("Favorite Emoji:")
-        Text(entry.configuration.favoriteEmoji)
+        ForEach(wallets) { wallet in
+            Text(wallet.compressedPolymarketAddress!)
+        }
     }
 }
 
 struct Portfolio: Widget {
     let kind: String = "Portfolio"
+    
+    var sharedModelContainer: ModelContainer = {
+        return SharedModelContainer.container
+    }()
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: Provider()) { entry in
             PortfolioEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
+                .modelContainer(sharedModelContainer)
         }
     }
 }
