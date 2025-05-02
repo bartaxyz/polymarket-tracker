@@ -61,6 +61,7 @@
 		4A82E5792DC3EBFE0039AFDF /* Exceptions for "Polymarket" folder in "PortfolioExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Assets.xcassets,
 				Components/ProfitLossChart.swift,
 				Models/WalletConnectModel.swift,
 				Services/PolymarketDataService.swift,
