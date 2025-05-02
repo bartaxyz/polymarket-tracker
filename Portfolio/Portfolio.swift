@@ -5,6 +5,7 @@
 //  Created by Ondřej Bárta on 1/5/25.
 //
 
+import Foundation
 import WidgetKit
 import SwiftUI
 import SwiftData
@@ -70,23 +71,92 @@ struct SimpleEntry: TimelineEntry {
 }
 
 struct PortfolioEntryView : View {
+    @Environment(\.widgetFamily) private var widgetFamily
     @Query var wallets: [WalletConnectModel]
     var entry: Provider.Entry
 
     var body: some View {
-        Text(entry.polymarketAddress ?? "")
-        HStack {
-            HStack {
-                Text("Portfolio:")
-                Text("$\(entry.portfolioValue ?? 0.0)")
+        let todayPnLRaw = (entry.pnl?.last?.p ?? 0.0) - (entry.pnl?.first?.p ?? 0.0)
+        let todayPnL = todayPnLRaw.formatted(
+            .number
+                .precision(.fractionLength(2))
+                .sign(strategy: .always())
+        )
+        
+        let portfolioValue = "$\u{202F}" + (entry.portfolioValue ?? 0.0)
+            .formatted(.number.precision(.fractionLength(2)))
+#if os(macOS)
+        let titleFont = Font.largeTitle;
+#else
+        let titleFont = Font.title;
+#endif
+        
+        // Normalize PnL: subtract the last PnL point, then add the portfolio value
+        let data: [PolymarketDataService.PnLDataPoint] = {
+            let raw = entry.pnl ?? []
+            let lastP = raw.last?.p ?? 0.0
+            let base  = entry.portfolioValue ?? 0.0
+            return raw.map { point in
+                PolymarketDataService.PnLDataPoint(
+                    t: point.t,
+                    p: point.p - lastP + base
+                )
             }
-            Spacer()
+        }()
+        
+        switch widgetFamily {
+        case .accessoryRectangular:
             HStack {
-                Text("PnL:")
-                Text("$\((entry.pnl?.last?.p ?? 0.0) - (entry.pnl?.first?.p ?? 0.0))")
+                Text(portfolioValue)
+                Spacer()
+                Text(todayPnL)
             }
+            ProfitLossChart(
+                data: data,
+                hideXAxis: true,
+                hideYAxis: true
+            )
+        case .systemSmall:
+            VStack(alignment: .leading) {
+                Text("Portfolio")
+                    .font(.caption)
+                    .opacity(0.5)
+                HStack {
+                    Text("Profit / Loss")
+                    Spacer()
+                    Text(todayPnL)
+                }
+                ProfitLossChart(
+                    data: data,
+                    hideXAxis: true,
+                    hideYAxis: true
+                )
+                HStack {
+                    Spacer()
+                    Text(portfolioValue)
+                        .font(titleFont)
+                }
+            }
+        default:
+            HStack {
+                VStack(alignment: .leading) {
+                    Text("Portfolio")
+                        .font(.caption)
+                        .opacity(0.5)
+                    Text(portfolioValue)
+                        .font(titleFont)
+                }
+                Spacer()
+                VStack(alignment: .trailing) {
+                    Text("Profit / Loss")
+                        .font(.caption)
+                        .opacity(0.5)
+                    Text(todayPnL)
+                        .font(titleFont)
+                }
+            }
+            ProfitLossChart(data: data)
         }
-        ProfitLossChart(data: entry.pnl ?? [])
     }
 }
 
@@ -103,5 +173,19 @@ struct Portfolio: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
                 .modelContainer(sharedModelContainer)
         }
+#if os(macOS)
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .systemLarge,
+        ])
+#else
+        .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
+            .systemLarge,
+            .accessoryRectangular
+        ])
+#endif
     }
 }
