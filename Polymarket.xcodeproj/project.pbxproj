@@ -7,22 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		4A5356802DBE1BA5006EEFAB /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A53567F2DBE1BA5006EEFAB /* WidgetKit.framework */; };
-		4A5356822DBE1BA5006EEFAB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A5356812DBE1BA5006EEFAB /* SwiftUI.framework */; };
-		4A5356902DBE1BA7006EEFAB /* ProfitLossExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		4A82E5622DC3EBB70039AFDF /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A53567F2DBE1BA5006EEFAB /* WidgetKit.framework */; };
 		4A82E5632DC3EBB70039AFDF /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4A5356812DBE1BA5006EEFAB /* SwiftUI.framework */; };
 		4A82E5712DC3EBB80039AFDF /* PortfolioExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4A82E5612DC3EBB70039AFDF /* PortfolioExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		4A53568E2DBE1BA7006EEFAB /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4A53565E2DBE1687006EEFAB /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4A53567C2DBE1BA5006EEFAB;
-			remoteInfo = ProfitLossExtension;
-		};
 		4A82E56F2DC3EBB80039AFDF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 4A53565E2DBE1687006EEFAB /* Project object */;
@@ -39,7 +29,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				4A5356902DBE1BA7006EEFAB /* ProfitLossExtension.appex in Embed Foundation Extensions */,
 				4A82E5712DC3EBB80039AFDF /* PortfolioExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
@@ -49,7 +38,6 @@
 
 /* Begin PBXFileReference section */
 		4A5356662DBE1687006EEFAB /* Polymarket.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Polymarket.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ProfitLossExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A53567F2DBE1BA5006EEFAB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
 		4A5356812DBE1BA5006EEFAB /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
 		4A82E5612DC3EBB70039AFDF /* PortfolioExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PortfolioExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -63,13 +51,6 @@
 			);
 			target = 4A5356652DBE1687006EEFAB /* Polymarket */;
 		};
-		4A5356942DBE1BA7006EEFAB /* Exceptions for "ProfitLoss" folder in "ProfitLossExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */;
-		};
 		4A82E5752DC3EBB80039AFDF /* Exceptions for "Portfolio" folder in "PortfolioExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -77,18 +58,12 @@
 			);
 			target = 4A82E5602DC3EBB70039AFDF /* PortfolioExtension */;
 		};
-		4A82E5782DC3EBFE0039AFDF /* Exceptions for "Polymarket" folder in "ProfitLossExtension" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Models/WalletConnectModel.swift,
-				SharedModelContainer.swift,
-			);
-			target = 4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */;
-		};
 		4A82E5792DC3EBFE0039AFDF /* Exceptions for "Polymarket" folder in "PortfolioExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Components/ProfitLossChart.swift,
 				Models/WalletConnectModel.swift,
+				Services/PolymarketDataService.swift,
 				SharedModelContainer.swift,
 			);
 			target = 4A82E5602DC3EBB70039AFDF /* PortfolioExtension */;
@@ -100,18 +75,9 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				4A5356732DBE1689006EEFAB /* Exceptions for "Polymarket" folder in "Polymarket" target */,
-				4A82E5782DC3EBFE0039AFDF /* Exceptions for "Polymarket" folder in "ProfitLossExtension" target */,
 				4A82E5792DC3EBFE0039AFDF /* Exceptions for "Polymarket" folder in "PortfolioExtension" target */,
 			);
 			path = Polymarket;
-			sourceTree = "<group>";
-		};
-		4A5356832DBE1BA5006EEFAB /* ProfitLoss */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				4A5356942DBE1BA7006EEFAB /* Exceptions for "ProfitLoss" folder in "ProfitLossExtension" target */,
-			);
-			path = ProfitLoss;
 			sourceTree = "<group>";
 		};
 		4A82E5642DC3EBB70039AFDF /* Portfolio */ = {
@@ -132,15 +98,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4A53567A2DBE1BA5006EEFAB /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				4A5356822DBE1BA5006EEFAB /* SwiftUI.framework in Frameworks */,
-				4A5356802DBE1BA5006EEFAB /* WidgetKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		4A82E55E2DC3EBB70039AFDF /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -157,7 +114,6 @@
 			isa = PBXGroup;
 			children = (
 				4A5356682DBE1687006EEFAB /* Polymarket */,
-				4A5356832DBE1BA5006EEFAB /* ProfitLoss */,
 				4A82E5642DC3EBB70039AFDF /* Portfolio */,
 				4A53567E2DBE1BA5006EEFAB /* Frameworks */,
 				4A5356672DBE1687006EEFAB /* Products */,
@@ -168,7 +124,6 @@
 			isa = PBXGroup;
 			children = (
 				4A5356662DBE1687006EEFAB /* Polymarket.app */,
-				4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */,
 				4A82E5612DC3EBB70039AFDF /* PortfolioExtension.appex */,
 			);
 			name = Products;
@@ -198,7 +153,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				4A53568F2DBE1BA7006EEFAB /* PBXTargetDependency */,
 				4A82E5702DC3EBB80039AFDF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -210,28 +164,6 @@
 			productName = Polymarket;
 			productReference = 4A5356662DBE1687006EEFAB /* Polymarket.app */;
 			productType = "com.apple.product-type.application";
-		};
-		4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4A5356912DBE1BA7006EEFAB /* Build configuration list for PBXNativeTarget "ProfitLossExtension" */;
-			buildPhases = (
-				4A5356792DBE1BA5006EEFAB /* Sources */,
-				4A53567A2DBE1BA5006EEFAB /* Frameworks */,
-				4A53567B2DBE1BA5006EEFAB /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				4A5356832DBE1BA5006EEFAB /* ProfitLoss */,
-			);
-			name = ProfitLossExtension;
-			packageProductDependencies = (
-			);
-			productName = ProfitLossExtension;
-			productReference = 4A53567D2DBE1BA5006EEFAB /* ProfitLossExtension.appex */;
-			productType = "com.apple.product-type.app-extension";
 		};
 		4A82E5602DC3EBB70039AFDF /* PortfolioExtension */ = {
 			isa = PBXNativeTarget;
@@ -268,9 +200,6 @@
 					4A5356652DBE1687006EEFAB = {
 						CreatedOnToolsVersion = 16.3;
 					};
-					4A53567C2DBE1BA5006EEFAB = {
-						CreatedOnToolsVersion = 16.3;
-					};
 					4A82E5602DC3EBB70039AFDF = {
 						CreatedOnToolsVersion = 16.3;
 					};
@@ -293,7 +222,6 @@
 			projectRoot = "";
 			targets = (
 				4A5356652DBE1687006EEFAB /* Polymarket */,
-				4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */,
 				4A82E5602DC3EBB70039AFDF /* PortfolioExtension */,
 			);
 		};
@@ -301,13 +229,6 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		4A5356642DBE1687006EEFAB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4A53567B2DBE1BA5006EEFAB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -331,13 +252,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4A5356792DBE1BA5006EEFAB /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		4A82E55D2DC3EBB70039AFDF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -348,11 +262,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		4A53568F2DBE1BA7006EEFAB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4A53567C2DBE1BA5006EEFAB /* ProfitLossExtension */;
-			targetProxy = 4A53568E2DBE1BA7006EEFAB /* PBXContainerItemProxy */;
-		};
 		4A82E5702DC3EBB80039AFDF /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 4A82E5602DC3EBB70039AFDF /* PortfolioExtension */;
@@ -557,84 +466,6 @@
 			};
 			name = Release;
 		};
-		4A5356922DBE1BA7006EEFAB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = ProfitLoss/ProfitLoss.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 73N8SZQ662;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ProfitLoss/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ProfitLoss;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@executable_path/../../../../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ondrejbarta.Polymarket.ProfitLoss;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 2.4;
-			};
-			name = Debug;
-		};
-		4A5356932DBE1BA7006EEFAB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
-				CODE_SIGN_ENTITLEMENTS = ProfitLoss/ProfitLoss.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 73N8SZQ662;
-				ENABLE_HARDENED_RUNTIME = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ProfitLoss/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = ProfitLoss;
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@executable_path/../../Frameworks",
-				);
-				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@executable_path/../../../../Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 15.4;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ondrejbarta.Polymarket.ProfitLoss;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SKIP_INSTALL = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 2.4;
-			};
-			name = Release;
-		};
 		4A82E5722DC3EBB80039AFDF /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -732,15 +563,6 @@
 			buildConfigurations = (
 				4A5356752DBE1689006EEFAB /* Debug */,
 				4A5356762DBE1689006EEFAB /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		4A5356912DBE1BA7006EEFAB /* Build configuration list for PBXNativeTarget "ProfitLossExtension" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				4A5356922DBE1BA7006EEFAB /* Debug */,
-				4A5356932DBE1BA7006EEFAB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

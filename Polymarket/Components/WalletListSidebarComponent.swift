@@ -21,9 +21,11 @@ struct WalletListSidebarComponent: View {
                         Image(systemName: "wallet.bifold")
                         VStack(alignment: .leading) {
                             Text(wallet.compressedPolymarketAddress!)
-                            Text("$1 000 000")
-                                .font(.caption)
-                                .opacity(0.5)
+                            if let polymarketAddress = wallet.polymarketAddress {
+                                PortfolioValueCaption(
+                                    polymarketAddress: polymarketAddress
+                                )
+                            }
                         }
                     }
                 }
