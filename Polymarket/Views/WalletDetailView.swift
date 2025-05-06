@@ -8,64 +8,92 @@
 import SwiftUI
 
 struct WalletDetailView: View {
-    @Environment(\.modelContext) var context;
-    @Environment(\.dismiss) var dismiss
-    
-    var wallet: WalletConnectModel
-    
-    @State private var data: [PolymarketDataService.PnLDataPoint] = []
-    @State private var isDeleteConfirmationPresented = false
+    let wallet: WalletConnectModel
+    @State private var userData: PolymarketDataService.UserData?
+    @State private var isLoading = false
+    @State private var error: Error?
     
     var body: some View {
-        VStack {
-            Text(wallet.polymarketAddress!)
-                .font(.title)
-            PortfolioValueCaption(
-                polymarketAddress: wallet.polymarketAddress!
-            )
-            ProfitLossChart(data: data)
-        }
-        .navigationTitle(wallet.compressedPolymarketAddress!)
-        .toolbar {
-            ToolbarItem {
-                Button(action: showDeleteConfirmation) {
-                    Image(systemName: "trash")
+        Group {
+            if isLoading {
+                ProgressView()
+            } else if let error = error {
+                ContentUnavailableView {
+                    Label("Error", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(error.localizedDescription)
+                } actions: {
+                    Button("Retry") {
+                        Task {
+                            await refreshData()
+                        }
+                    }
+                }
+            } else if let userData = userData {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if let portfolioValue = userData.portfolioValue {
+                            VStack(alignment: .leading) {
+                                Text("Portfolio Value")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text(portfolioValue, format: .currency(code: "USD"))
+                                    .font(.title)
+                                    .bold()
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(.secondary.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        
+                        if let pnlData = userData.pnlData {
+                            VStack(alignment: .leading) {
+                                Text("Profit & Loss")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                ProfitLossChart(data: pnlData)
+                                    .frame(height: 200)
+                            }
+                            .padding()
+                            .background(.secondary.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
+                    .padding()
+                }
+                .refreshable {
+                    await refreshData()
                 }
             }
         }
-        .confirmationDialog("Are you sure you want to delete this wallet?", isPresented: $isDeleteConfirmationPresented) {
-            Button("Delete", role: .destructive) {
-                deleteWallet()
-            }
-            Button("Cancel", role: .cancel) { }
-        }
+        .navigationTitle(wallet.compressedPolymarketAddress ?? "Wallet")
         .task {
-            await fetchPnl()
+            await refreshData()
         }
     }
     
-    private func showDeleteConfirmation() {
-        isDeleteConfirmationPresented = true
-    }
-    
-    private func deleteWallet() {
-        context.delete(wallet)
-        try? context.save()
-        dismiss()
-    }
-    
-    private func fetchPnl() async {
-        let dataPoints = try? await PolymarketDataService.fetchPnL(userId: wallet.polymarketAddress!)
-        data = dataPoints ?? []
-        print(data)
+    private func refreshData() async {
+        guard let address = wallet.polymarketAddress else { return }
+        
+        isLoading = true
+        error = nil
+        
+        do {
+            userData = await PolymarketDataService.fetchUserData(userId: address)
+        } catch {
+            self.error = error
+        }
+        
+        isLoading = false
     }
 }
 
 #Preview {
-    WalletDetailView(
-        wallet: WalletConnectModel(
-            walletAddress: "0x235A480a9CCB7aDA0Ad2DC11dAC3a11FB433Febd",
-            polymarketAddress: "0x235A480a9CCB7aDA0Ad2DC11dAC3a11FB433Febd",
-        )
-    )
+    NavigationStack {
+        WalletDetailView(wallet: WalletConnectModel(
+            walletAddress: nil,
+            polymarketAddress: "0x1234567890123456789012345678901234567890"
+        ))
+    }
 }

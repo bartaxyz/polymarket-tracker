@@ -8,52 +8,56 @@
 import SwiftUI
 
 struct ConnectWalletManuallyView: View {
+    @Environment(\.colorScheme) var colorScheme
     @Environment(\.modelContext) var context;
-    @Environment(\.dismiss) var dismiss;
+    @Environment(\.dismiss) var dismissNavigation;
     @State var polymarketAddress: String = "";
     @State var error: Error? = nil;
     
+    var isCancellable = true;
+    
     var body: some View {
         NavigationStack {
-            VStack {
-                Spacer()
-                
-                VStack(spacing: 8) {
-                    Text("Connect your Polymarket address")
-                        .font(.headline)
-                        .multilineTextAlignment(.center)
-                    Text("This is not your wallet address. You can find this in the Polymarket UI.")
-                        .multilineTextAlignment(.center)
-                        .font(.caption)
-                        .opacity(0.5)
-                }
-                .padding()
-                
-                Form {
-                    TextField("Polymarket Address", text: $polymarketAddress)
+            Form {
+                Section() {
+                    Text("1. Visit [Polymarket website](https://polymarket.com), and connect your wallet")
+                    
+                    VStack(alignment: .leading) {
+                        Text("2. Click on your profile icon in the top right & copy your Polymarket address")
+                        
+                        Image(colorScheme == .dark ? "CopyAddressDark" : "CopyAddressLight")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(idealWidth: 400, idealHeight: 200)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    
+                    TextField("3. Paste your address here:", text: $polymarketAddress)
                     
                     if error != nil {
                         Text("Invalid address format. The address should be in the format of 0x..., and have 36 characters.")
                             .foregroundStyle(.orange)
-                            .font(.caption)
                     }
+                } header: {
+                    Text("Connect your Polymarket address")
                 }
-                .formStyle(.grouped)
-                .frame(minHeight: 80)
-                .toolbar() {
+            }
+            .formStyle(.grouped)
+            .toolbar {
+                if isCancellable {
                     ToolbarItem(placement: .cancellationAction) {
                         Button(action: cancel) {
                             Text("Cancel")
                         }
                     }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(action: connectWallet) {
-                            Text("Connect Wallet")
-                        }
-                    }
                 }
                 
-                Spacer()
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: connectWallet) {
+                        Text("Connect Wallet")
+                    }
+                }
             }
         }
     }
@@ -62,8 +66,10 @@ struct ConnectWalletManuallyView: View {
         dismiss()
     }
     
-    private func validateAddress() {
-        
+    private func dismiss() {
+        if isCancellable {
+            dismissNavigation()
+        }
     }
     
     private func connectWallet() {

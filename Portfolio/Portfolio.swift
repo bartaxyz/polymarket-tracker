@@ -22,27 +22,27 @@ struct Provider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
-        SimpleEntry(
-            date: Date(),
-            polymarketAddress: nil,
-            portfolioValue: nil,
-            pnl: nil,
-            configuration: configuration
-        )
+        return await getCurrentEntry(for: configuration, in: context)
     }
     
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<SimpleEntry> {
         var entries: [SimpleEntry] = []
         
+        entries.append(
+            await getCurrentEntry(for: configuration, in: context)
+        )
+
+        return Timeline(entries: entries, policy: .atEnd)
+    }
+    
+    func getCurrentEntry (for configuration: ConfigurationAppIntent, in context: Context) async -> SimpleEntry {
         let descriptor = FetchDescriptor<WalletConnectModel>()
-        
         let wallets: [WalletConnectModel]? = try? (await SharedModelContainer.container.mainContext.fetch(descriptor))
         
-        let polymarketAddress = wallets?.first?.polymarketAddress ?? nil
+        let polymarketAddress = wallets?.last?.polymarketAddress ?? nil
         
         let portfolioValue: Double? = try? await PolymarketDataService.fetchPortfolio(userId: polymarketAddress ?? "")
         let pnl = try? await PolymarketDataService.fetchPnL(userId: polymarketAddress!)
-        
         
         let entry = SimpleEntry(
             date: Date(),
@@ -52,9 +52,7 @@ struct Provider: AppIntentTimelineProvider {
             configuration: configuration
         )
         
-        entries.append(entry)
-
-        return Timeline(entries: entries, policy: .atEnd)
+        return entry;
     }
 
 //    func relevances() async -> WidgetRelevances<ConfigurationAppIntent> {

@@ -40,6 +40,15 @@ class PolymarketDataService {
         case day = "1d"
         case twelveHours = "12h"
         case sixHours = "6h"
+        
+        var defaultFidelity: PnLFidelity {
+            switch self {
+            case .max: return .day
+            case .month: return .day
+            case .week: return .threeHours
+            case .day, .twelveHours, .sixHours: return .oneHour
+            }
+        }
     }
     enum PnLFidelity: String {
         case day = "1d"
@@ -56,8 +65,9 @@ class PolymarketDataService {
         let t: Date
         let p: Double
     }
-    static func fetchPnL(userId: String, interval: PnLInterval = .day, fidelity: PnLFidelity = .oneHour) async throws -> [PnLDataPoint] {
-        let url = URL(string: "https://user-pnl-api.polymarket.com/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(fidelity.rawValue)")!
+    static func fetchPnL(userId: String, interval: PnLInterval = .day, fidelity: PnLFidelity? = nil) async throws -> [PnLDataPoint] {
+        let effectiveFidelity = fidelity ?? interval.defaultFidelity
+        let url = URL(string: "https://user-pnl-api.polymarket.com/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
         print(url)
         let data  = try Data(contentsOf: url)
         guard let raw = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
@@ -83,5 +93,99 @@ class PolymarketDataService {
                 p: p
             )
         }
+    }
+    
+    struct Position: Decodable {
+        let proxyWallet: String
+        let asset: String
+        let conditionId: String
+        let size: Double
+        let avgPrice: Double
+        let initialValue: Double
+        let currentValue: Double
+        let cashPnl: Double
+        let percentPnl: Double
+        let totalBought: Double
+        let realizedPnl: Double
+        let percentRealizedPnl: Double
+        let curPrice: Double
+        let redeemable: Bool
+        let mergeable: Bool
+        let title: String
+        let slug: String
+        let icon: String
+        let eventSlug: String
+        let outcome: String
+        let outcomeIndex: Int
+        let oppositeOutcome: String
+        let oppositeAsset: String
+        let endDate: String
+        let negativeRisk: Bool
+    }
+    
+    static func fetchPositions(userId: String, sizeThreshold: Double = 0.1, limit: Int = 50, offset: Int = 0, sortBy: String = "CURRENT", sortDirection: String = "DESC") async throws -> [Position] {
+        var components = URLComponents(string: "https://data-api.polymarket.com/positions")!
+        components.queryItems = [
+            URLQueryItem(name: "user", value: userId),
+            URLQueryItem(name: "sizeThreshold", value: String(sizeThreshold)),
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String(offset)),
+            URLQueryItem(name: "sortBy", value: sortBy),
+            URLQueryItem(name: "sortDirection", value: sortDirection)
+        ]
+        
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+        
+        let data = try Data(contentsOf: url)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode([Position].self, from: data)
+    }
+    
+    struct UserData {
+        var portfolioValue: Double?
+        var pnlData: [PnLDataPoint]?
+        var positions: [Position]?
+    }
+    
+    static func fetchUserData(userId: String, pnlInterval: PnLInterval = .day, pnlFidelity: PnLFidelity? = nil) async -> UserData {
+        async let portfolioTask = Task<Double?, Never> {
+            do {
+                return try await fetchPortfolio(userId: userId)
+            } catch {
+                print("Failed to fetch portfolio: \(error)")
+                return nil
+            }
+        }
+        
+        async let pnlTask = Task<[PnLDataPoint]?, Never> {
+            do {
+                return try await fetchPnL(userId: userId, interval: pnlInterval, fidelity: pnlFidelity)
+            } catch {
+                print("Failed to fetch PnL: \(error)")
+                return nil
+            }
+        }
+        
+        async let positionsTask = Task<[Position]?, Never> {
+            do {
+                return try await fetchPositions(userId: userId)
+            } catch {
+                print("Failed to fetch positions: \(error)")
+                return nil
+            }
+        }
+        
+        let portfolioValue = await portfolioTask.value
+        let pnlData = await pnlTask.value
+        let positions = await positionsTask.value
+        
+        return UserData(
+            portfolioValue: portfolioValue,
+            pnlData: pnlData,
+            positions: positions
+        )
     }
 }

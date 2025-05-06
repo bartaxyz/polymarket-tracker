@@ -16,84 +16,141 @@ import ReownAppKit
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var wallets: [WalletConnectModel]
+    var wallet: WalletConnectModel?
     
-    @State var isConnectWalletPresented: Bool = false
+    @State private var userData: PolymarketDataService.UserData?
+    @State private var isConnectWalletPresented = false
+    @State private var selectedPositionId: String?
+    
+    var selectedPosition: PolymarketDataService.Position? {
+        userData?.positions?.first { $0.conditionId == selectedPositionId }
+    }
     
     var body: some View {
         NavigationSplitView {
-            VStack {
-                if !wallets.isEmpty {
-                    WalletListSidebarComponent(
-                        wallets: wallets,
-                        deleteWallets: deleteWallets
-                    )
-                } else {
-                    EmptySidebarComponent(action: connectWallet)
-                }
-            }
-#if os(macOS)
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
-#endif
-            .toolbar(removing: .sidebarToggle)
-            .toolbar {
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-#endif
-                if !wallets.isEmpty {
-                    ToolbarItem {
-                        Spacer()
-                    }
-                    
-                    ToolbarItem {
-                        Button(action: connectWallet) {
-                            Label("Connect Wallet", systemImage: "plus")
+            List {
+                if wallet != nil {
+                    VStack {
+                        if let portfolioValue = userData?.portfolioValue {
+                            HStack {
+                                Text(portfolioValue, format: .currency(code: "USD"))
+                                    .bold()
+                                Spacer()
+                                Text(portfolioValue, format: .currency(code: "USD"))
+                                    .bold()
+                            }
+                            .padding()
+                        }
+                        
+                        if let pnlData = userData?.pnlData {
+                            ProfitLossChart(
+                                data: pnlData,
+                                // hideXAxis: true,
+                                // hideYAxis: true
+                            )
+                            .frame(height: 80)
                         }
                     }
                 }
+                
+                if wallet != nil {
+                    Section {
+                        PortfolioView(
+                            userData: userData
+                        )
+                    } header: {
+                        Text("Portfolio")
+                    }
+                } else {
+                    Section {
+                        NavigationLink(destination: ConnectWalletManuallyView()) {
+                            Image(systemName: "wallet.bifold")
+                            Text("Connect Wallet")
+                        }
+                    } header: {
+                        Text("Connect Wallet")
+                    }
+                }
+                
+                Section {
+                    NavigationLink(destination: Text("Trending")) {
+                        Label("Trending", systemImage: "chart.line.uptrend.xyaxis")
+                    }
+                    NavigationLink(destination: Text("New")) {
+                        Label("New", systemImage: "sparkles")
+                    }
+                    NavigationLink(destination: Text("Politics")) {
+                        Label("Politics", systemImage: "building.columns")
+                    }
+                    NavigationLink(destination: Text("Sports")) {
+                        Label("Sports", systemImage: "soccerball")
+                    }
+                    NavigationLink(destination: Text("Crypto")) {
+                        Label("Crypto", systemImage: "bitcoinsign")
+                    }
+                } header: {
+                    Text("Discover")
+                }
+            }
+            .refreshable {
+                syncRefreshData()
             }
         } detail: {
-            Text("Select an item")
+            Text("TODO")
         }
-        .navigationTitle("Polymarket Widgets")
+        .toolbar {
+            if let compressedPolymarketAddress = wallet?.compressedPolymarketAddress {
+                ToolbarItem {
+                    Menu {
+                        Button("Connect a different wallet") {
+                            connectWallet()
+                        }
+                        Button("Disconnect wallet") {
+                            disconnectWallet()
+                        }
+                    } label: {
+                        Image(systemName: "wallet.bifold")
+                        Text(compressedPolymarketAddress)
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $isConnectWalletPresented) {
             ConnectWalletManuallyView()
         }
+        .onChange(of: wallet) { _, wallet in
+            syncRefreshData()
+        }
+        .task {
+            await refreshData()
+        }
     }
     
+    private func syncRefreshData() {
+        Task {
+            await refreshData()
+        }
+    }
+
     private func connectWallet() {
         isConnectWalletPresented.toggle()
-        
-        // TODO:
-        // - WalletConnect
-        // - Polymarket address lookup
-        
-        // AppKit.present()
-        
-        /*withAnimation {
-            let newWallet = WalletConnectModel(
-                walletAddress: nil,
-                polymarketAddress: nil,
-            )
-            modelContext.insert(newWallet)
-        }*/
     }
     
     private func disconnectWallet() {
-        // try! await AppKit.instance.disconnect(topic: "manual")
+        Task {
+            try? await WalletConnectModel.disconnectAllWallets(modelContext)
+        }
     }
     
-    private func deleteWallets(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(wallets[index])
-            }
-        }
+    private func refreshData() async {
+        guard let address = wallet?.polymarketAddress else { return }
+        userData = await PolymarketDataService.fetchUserData(userId: address)
     }
 }
 
 #Preview {
-    HomeView()
+    HomeView(wallet: WalletConnectModel(
+        walletAddress: nil,
+        polymarketAddress: "0x1234567890123456789012345678901234567890"
+    ))
 }

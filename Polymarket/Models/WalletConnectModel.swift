@@ -32,4 +32,15 @@ final class WalletConnectModel {
         guard !address.isEmpty else { return false }
         return address.count >= 42
     }
+    
+    static func disconnectAllWallets(_ context: ModelContext) async throws {
+        let descriptor = FetchDescriptor<WalletConnectModel>()
+        let wallets = try context.fetch(descriptor)
+        
+        for wallet in wallets {
+            context.delete(wallet)
+        }
+        
+        try context.save()
+    }
 }
