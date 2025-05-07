@@ -1,3 +1,3 @@
-# Polymarket Widgets
+# Polymarket Tracker
 
-Native MacOS & iOS widgets for Polymarket.
+Unofficial MacOS / iOS / iPadOS widgets for Polymarket
