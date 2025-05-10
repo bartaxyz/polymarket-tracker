@@ -34,6 +34,9 @@ struct ConnectWalletManuallyView: View {
                     }
                     
                     TextField("3. Paste your address here:", text: $polymarketAddress)
+                        .onSubmit {
+                            connectWallet()
+                        }
                     
                     if error != nil {
                         Text("Invalid address format. The address should be in the format of 0x..., and have 36 characters.")
@@ -59,6 +62,7 @@ struct ConnectWalletManuallyView: View {
                     }
                 }
             }
+            .frame(maxWidth: 800)
         }
     }
     

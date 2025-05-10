@@ -74,6 +74,7 @@ struct PortfolioEntryView : View {
     var entry: Provider.Entry
 
     var body: some View {
+        let firstToday = entry.pnl?.first(where: { Calendar.current.isDateInToday($0.t) })
         let todayPnLRaw = (entry.pnl?.last?.p ?? 0.0) - (entry.pnl?.first?.p ?? 0.0)
         let todayPnL = todayPnLRaw.formatted(
             .number
@@ -110,9 +111,10 @@ struct PortfolioEntryView : View {
                 Text(todayPnL)
             }
             ProfitLossChart(
-                data: data,
+                userId: entry.polymarketAddress ?? "",
                 hideXAxis: true,
-                hideYAxis: true
+                hideYAxis: true,
+                range: .today
             )
         case .systemSmall:
             VStack(alignment: .leading) {
@@ -125,9 +127,10 @@ struct PortfolioEntryView : View {
                     Text(todayPnL)
                 }
                 ProfitLossChart(
-                    data: data,
+                    userId: entry.polymarketAddress ?? "",
                     hideXAxis: true,
-                    hideYAxis: true
+                    hideYAxis: true,
+                    range: .today
                 )
                 HStack {
                     Spacer()
@@ -153,7 +156,10 @@ struct PortfolioEntryView : View {
                         .font(titleFont)
                 }
             }
-            ProfitLossChart(data: data)
+            ProfitLossChart(
+                userId: entry.polymarketAddress ?? "",
+                range: .today
+            )
         }
     }
 }

@@ -9,6 +9,48 @@ import Foundation
 
 class PolymarketDataService {
     
+    // Cache manager for API responses
+    private static let cache = NSCache<NSString, CacheEntry>()
+    private static let cacheDuration: TimeInterval = 300 // 5 minutes
+    
+    class CacheEntry {
+        let data: Data
+        let timestamp: Date
+        
+        init(data: Data) {
+            self.data = data
+            self.timestamp = Date()
+        }
+        
+        var isValid: Bool {
+            return Date().timeIntervalSince(timestamp) < cacheDuration
+        }
+    }
+    
+    // Method to invalidate all cached data
+    static func invalidateCache() {
+        cache.removeAllObjects()
+    }
+    
+    // Helper method to fetch data with caching
+    private static func fetchData(from url: URL) throws -> Data {
+        let cacheKey = url.absoluteString as NSString
+        
+        // Check if we have a valid cached response
+        if let cachedEntry = cache.object(forKey: cacheKey), cachedEntry.isValid {
+            return cachedEntry.data
+        }
+        
+        // If no valid cache entry, fetch from network
+        let data = try Data(contentsOf: url)
+        
+        // Store in cache
+        let cacheEntry = CacheEntry(data: data)
+        cache.setObject(cacheEntry, forKey: cacheKey)
+        
+        return data
+    }
+    
     /**
      * Fetch Portfolio
      * ```
@@ -21,7 +63,7 @@ class PolymarketDataService {
      */
     static func fetchPortfolio(userId: String) async throws -> Double {
         let url = URL(string: "https://data-api.polymarket.com/value?user=\(userId)")!
-        let data = try Data(contentsOf: url)
+        let data = try fetchData(from: url)
         let json = try JSONSerialization.jsonObject(with: data, options: []) as! [[String: Any]]
         return json[0]["value"] as! Double
     }
@@ -43,8 +85,8 @@ class PolymarketDataService {
         
         var defaultFidelity: PnLFidelity {
             switch self {
-            case .max: return .day
-            case .month: return .day
+            case .max: return .twelveHours
+            case .month: return .threeHours
             case .week: return .threeHours
             case .day, .twelveHours, .sixHours: return .oneHour
             }
@@ -57,19 +99,45 @@ class PolymarketDataService {
         case threeHours = "3h"
         case oneHour = "1h"
     }
-    struct PnLRawDataPoint: Decodable {
-        let t: Int
-        let p: String
+    enum PnLRange: String, CaseIterable {
+        case today = "today"
+        case day = "1d"
+        case week = "1w"
+        case month = "1m"
+        case max = "max"
+
+        var interval: PnLInterval {
+            switch self {
+            case .max: return .max
+            case .month: return .month
+            case .week: return .week
+            case .day: return .day
+            case .today: return .day
+            }
+        }
+        var label: String {
+            switch self {
+            case .max: return "All"
+            case .month: return "1M"
+            case .week: return "1W"
+            case .day: return "1D"
+            case .today: return "Today"
+            }
+        }
     }
-    struct PnLDataPoint: Decodable {
-        let t: Date
-        let p: Double
+    struct PnLRawDataPoint: Decodable {
+        var t: Int
+        var p: String
+    }
+    struct PnLDataPoint: Decodable, Equatable {
+        var t: Date
+        var p: Double
     }
     static func fetchPnL(userId: String, interval: PnLInterval = .day, fidelity: PnLFidelity? = nil) async throws -> [PnLDataPoint] {
         let effectiveFidelity = fidelity ?? interval.defaultFidelity
         let url = URL(string: "https://user-pnl-api.polymarket.com/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
         print(url)
-        let data  = try Data(contentsOf: url)
+        let data = try fetchData(from: url)
         guard let raw = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
         else { return [] }
         
@@ -138,7 +206,7 @@ class PolymarketDataService {
             throw URLError(.badURL)
         }
         
-        let data = try Data(contentsOf: url)
+        let data = try fetchData(from: url)
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode([Position].self, from: data)
@@ -187,5 +255,39 @@ class PolymarketDataService {
             pnlData: pnlData,
             positions: positions
         )
+    }
+
+    struct SearchResponse: Decodable {
+        let events: [Event]
+        let hasMore: Bool
+    }
+    
+    struct Event: Decodable {
+        let id: String
+        let title: String
+        let slug: String
+        let description: String?
+        let imageUrl: String?
+        let endDate: String?
+        let volume: Double?
+        let liquidity: Double?
+    }
+    
+    static func searchEvents(query: String, category: String = "all", page: Int = 1) async throws -> SearchResponse {
+        var components = URLComponents(string: "https://polymarket.com/api/events/search")!
+        components.queryItems = [
+            URLQueryItem(name: "_c", value: category),
+            URLQueryItem(name: "_q", value: query),
+            URLQueryItem(name: "_p", value: String(page))
+        ]
+        
+        guard let url = components.url else {
+            throw URLError(.badURL)
+        }
+        
+        let data = try fetchData(from: url)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(SearchResponse.self, from: data)
     }
 }
