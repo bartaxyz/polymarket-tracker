@@ -8,23 +8,20 @@
 import SwiftUI
 
 struct PortfolioSidebarSectionView: View {
-    var userId: String
-    var userData: PolymarketDataService.UserData?
+    @StateObject private var dataService = PolymarketDataService.shared
     
     var body: some View {
         Section {
-            ProfitLossChart(
-                userId: userId,
+            PortfolioView(
                 showHeader: true,
                 showPicker: true,
-                range: .today,
             )
             .frame(height: 200)
         } header: {
             Text("Portfolio")
         }
         
-        if let positions = userData?.positions {
+        if let positions = dataService.positions {
             Section {
                 ForEach(positions, id: \.conditionId) { position in
                     NavigationLink(
@@ -56,7 +53,7 @@ struct PortfolioSidebarSectionView: View {
 }
 
 #Preview {
-    PortfolioSidebarSectionView(
-        userId: "0x235A480a9CCB7aDA0Ad2DC11dAC3a11FB433Febd"
-    )
+    PortfolioSidebarSectionView()
+    .frame(width: 320)
+    .padding()
 }

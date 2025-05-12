@@ -41,8 +41,8 @@ struct Provider: AppIntentTimelineProvider {
         
         let polymarketAddress = wallets?.last?.polymarketAddress ?? nil
         
-        let portfolioValue: Double? = try? await PolymarketDataService.fetchPortfolio(userId: polymarketAddress ?? "")
-        let pnl = try? await PolymarketDataService.fetchPnL(userId: polymarketAddress!)
+        let portfolioValue: Double? = try? await PolymarketDataService.shared.fetchPortfolio(userId: polymarketAddress ?? "")
+        let pnl = try? await PolymarketDataService.shared.fetchPnL(userId: polymarketAddress!)
         
         let entry = SimpleEntry(
             date: Date(),
@@ -111,10 +111,10 @@ struct PortfolioEntryView : View {
                 Text(todayPnL)
             }
             ProfitLossChart(
-                userId: entry.polymarketAddress ?? "",
+                data: data,
+                range: .today,
                 hideXAxis: true,
                 hideYAxis: true,
-                range: .today
             )
         case .systemSmall:
             VStack(alignment: .leading) {
@@ -127,10 +127,10 @@ struct PortfolioEntryView : View {
                     Text(todayPnL)
                 }
                 ProfitLossChart(
-                    userId: entry.polymarketAddress ?? "",
+                    data: data,
+                    range: .today,
                     hideXAxis: true,
                     hideYAxis: true,
-                    range: .today
                 )
                 HStack {
                     Spacer()
@@ -157,7 +157,7 @@ struct PortfolioEntryView : View {
                 }
             }
             ProfitLossChart(
-                userId: entry.polymarketAddress ?? "",
+                data: data,
                 range: .today
             )
         }
