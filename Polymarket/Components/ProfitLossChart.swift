@@ -66,7 +66,7 @@ struct ProfitLossChart: View {
                     .interpolationMethod(.catmullRom)
                     
                     RuleMark(y: .value("Baseline", baseline))
-                        .foregroundStyle(.secondary.opacity(0.1))
+                        .foregroundStyle(.primary.opacity(0.1))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
                     
                     AreaMark(

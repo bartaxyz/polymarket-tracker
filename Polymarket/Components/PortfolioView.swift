@@ -79,26 +79,21 @@ struct PortfolioView: View {
                     VStack(alignment: .trailing) {
                         CurrencyText(
                             amount: absolutePnL,
-                            signature: .always
+                            signature: .never,
+                            // hasBackground: true,
+                            isDelta: true,
+                            hasArrow: true
                         )
-                        .font(.caption)
-                        .fontWeight(.semibold)
+
                         PercentageText(
                             amount: deltaPnL,
                             signature: .always
                         )
                         .font(.caption)
-                        .fontWeight(.semibold)
+                        .opacity(0.5)
                     }
                 }
             }
-
-            ProfitLossChart(
-                data: normalizedData,
-                range: range,
-            )
-            .id(chartId)
-            .opacity(isLoading ? 0.3 : 1.0)
             
             if showPicker {
                 Picker(selection: $range, label: EmptyView()) {
@@ -110,6 +105,13 @@ struct PortfolioView: View {
                 .pickerStyle(.segmented)
                 .disabled(isLoading)
             }
+
+            ProfitLossChart(
+                data: normalizedData,
+                range: range,
+            )
+            .id(chartId)
+            .opacity(isLoading ? 0.3 : 1.0)
         }
         .onChange(of: range) { oldValue, newValue in
             Task { await fetchData() }
@@ -126,11 +128,12 @@ struct PortfolioView: View {
         isLoading = true
         defer { isLoading = false }
         
-        guard let data = try? await dataService.fetchPnL(
+        guard let pnlData = try? await dataService.fetchPnL(
             userId: userId,
             interval: PolymarketDataService.PnLInterval(rawValue: range.rawValue) ?? .day
         ) else { return }
-        self.data = data
+        
+        data = pnlData
         lastUpdated = Date()
     }
 }

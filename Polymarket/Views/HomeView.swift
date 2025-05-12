@@ -209,33 +209,35 @@ private struct EventRowView: View {
     let isSelected: Bool
     
     var body: some View {
-        HStack(spacing: 12) {
-            if let imageUrl = event.imageUrl,
-               let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Color.gray.opacity(0.2)
-                }
-                .frame(width: 40, height: 40)
-                .cornerRadius(8)
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.2))
+        NavigationLink(destination: EmptyView()) {
+            HStack(spacing: 12) {
+                if let imageUrl = event.imageUrl,
+                let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Color.gray.opacity(0.2)
+                    }
                     .frame(width: 40, height: 40)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.title)
-                    .lineLimit(2)
-                    .font(.subheadline)
+                    .cornerRadius(8)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                }
                 
-                if let volume = event.volume {
-                    Text("Volume: $\(String(format: "%.2f", volume))")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title)
+                        .lineLimit(2)
+                        .font(.subheadline)
+                    
+                    if let volume = event.volume {
+                        Text("Volume: $\(String(format: "%.2f", volume))")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
                 }
             }
         }

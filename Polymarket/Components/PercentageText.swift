@@ -16,6 +16,9 @@ struct PercentageText: View {
     
     var amount: Double?
     var signature: SignatureStrategy = .automatic
+    var hasBackground: Bool = false
+    var isDelta: Bool = false
+    var hasArrow: Bool = false
     
     private var formattedAmount: String {
         let numberFormatter = NumberFormatter()
@@ -35,22 +38,46 @@ struct PercentageText: View {
         return numberFormatter.string(from: NSNumber(value: amount)) ?? "-"
     }
     
+    private var arrow: String {
+        guard hasArrow, let amount = amount else { return "" }
+        return amount >= 0 ? "↑" : "↓"
+    }
+    
     var body: some View {
-        Text(formattedAmount)
-            .foregroundColor(amount == nil ? .clear : textColor)
-            .background(
-                amount == nil ? 
+        HStack(spacing: 2) {
+            if hasArrow {
+                Text(arrow)
+                    .font(.system(size: 12))
+            }
+            Text(formattedAmount)
+        }
+        .foregroundColor(amount == nil ? .clear : (hasBackground ? .white : textColor))
+        .background(
+            Group {
+                if amount == nil {
                     Rectangle()
                         .fill(Color.gray.opacity(0.2))
                         .cornerRadius(4)
-                    : nil
-            )
+                } else if hasBackground {
+                    Rectangle()
+                        .fill(backgroundColor ?? .clear)
+                        .cornerRadius(4)
+                        .padding(.horizontal, -3)
+                        .padding(.vertical, -2)
+                }
+            }
+        )
     }
     
     private var textColor: Color? {
-        guard signature == .always else { return nil }
+        guard isDelta else { return nil }
         guard let amount = amount else { return nil }
-        return amount >= 0 ? .green : .red
+        return amount >= 0 ? .positive : .negative
+    }
+    
+    private var backgroundColor: Color? {
+        guard let amount = amount else { return nil }
+        return amount >= 0 ? .positive : .negative
     }
 }
 
@@ -63,5 +90,12 @@ struct PercentageText: View {
         PercentageText(amount: -0.42, signature: .always)
         PercentageText(amount: 0.42, signature: .never)
         PercentageText(amount: -0.42, signature: .never)
+        PercentageText(amount: 0.42, hasBackground: true)
+        PercentageText(amount: -0.42, hasBackground: true)
+        PercentageText(amount: 0.42, isDelta: true)
+        PercentageText(amount: -0.42, isDelta: true)
+        PercentageText(amount: 0.42, hasArrow: true)
+        PercentageText(amount: -0.42, hasArrow: true)
     }
+    .padding()
 }

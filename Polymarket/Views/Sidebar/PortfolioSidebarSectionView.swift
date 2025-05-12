@@ -37,11 +37,22 @@ struct PortfolioSidebarSectionView: View {
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        VStack(alignment: .trailing) {
-                            Text(position.currentValue, format: .currency(code: "USD"))
-                                .bold()
-                            Text(position.percentPnl / 100, format: .percent.precision(.fractionLength(2)))
-                                .foregroundColor(position.percentPnl >= 0 ? .green : .red)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            CurrencyText(
+                                amount: position.cashPnl,
+                                signature: .always,
+                                isDelta: true,
+                                // hasBackground: true
+                            )
+                            .fontWeight(.semibold)
+                            .font(.caption)
+                            PercentageText(
+                                amount: position.percentPnl / 100,
+                                signature: .never,
+                                hasArrow: true
+                            )
+                            .font(.caption)
+                            .opacity(0.5)
                         }
                     }
                 }
