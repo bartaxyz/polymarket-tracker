@@ -18,7 +18,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     var wallet: WalletConnectModel?
     
-    @StateObject private var dataService = PolymarketDataService.shared
+    @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var searchQuery: String = ""

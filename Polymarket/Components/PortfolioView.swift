@@ -16,8 +16,11 @@ struct PortfolioView: View {
     var showPicker: Bool = false
 
     @StateObject private var dataService = PolymarketDataService.shared
+    @State private var data: [PolymarketDataService.PnLDataPoint] = []
     @State private var range: PolymarketDataService.PnLRange = .today
-    
+    @State private var isLoading: Bool = false
+    @State private var lastUpdated: Date = Date()
+
     var isToday: Bool { range == .today }
     var todayStart: Date {
         return Calendar.current.startOfDay(for: .now)
@@ -25,54 +28,41 @@ struct PortfolioView: View {
     var todayEnd: Date {
         return Calendar.current.startOfDay(for: .now.addingTimeInterval(60 * 60 * 24))
     }
-    
+
     var filteredData: [PolymarketDataService.PnLDataPoint] {
-        guard let pnlData = dataService.pnlData else { return [] }
         if isToday {
-            return pnlData.filter { $0.t >= todayStart && $0.t < todayEnd }
+            return data.filter { $0.t >= todayStart && $0.t < todayEnd }
         }
-        return pnlData
+        return data
+    }
+    var first: Double? { filteredData.first?.p }
+    var last: Double? { filteredData.last?.p }
+    var absolutePnL: Double? {
+        guard let lastValue = last, let firstValue = first else { return nil }
+        return lastValue - firstValue
+    }
+    var normalizedData: [PolymarketDataService.PnLDataPoint] {
+        return filteredData.map { point in
+            PolymarketDataService.PnLDataPoint(
+                t: point.t,
+                p: point.p - first!
+            )
+        }
     }
     
     var baseline: Double { normalizedData.first?.p ?? 0 }
     var lowestValue: Double { normalizedData.min(by: { $0.p < $1.p })?.p ?? 0 }
     var highestValue: Double { normalizedData.max(by: { $0.p < $1.p })?.p ?? 0 }
     
-    var first: Double? { normalizedData.first?.p }
-    var last: Double? { normalizedData.last?.p }
-    var absolutePnL: Double? {
-        guard let lastValue = last, let firstValue = first else { return nil }
-        return lastValue - firstValue
-    }
-    var normalizedData: [PolymarketDataService.PnLDataPoint] {
-        let lastP = filteredData.last?.p ?? 0.0
-        let portfolioValue = dataService.portfolioValue ?? 0.0
-        return filteredData.map { point in
-            PolymarketDataService.PnLDataPoint(
-                t: point.t,
-                p: point.p - lastP + portfolioValue
-            )
-        }
-    }
     var deltaPnL: Double? {
         guard let lastValue = last, let firstValue = first, firstValue != 0 else {
             return nil
         }
         return (lastValue - firstValue) / firstValue
     }
-    
-    var chartXScaleDomain: ClosedRange<Date> {
-        if isToday {
-            return todayStart ... todayEnd
-        }
-        return (filteredData.first?.t ?? Date()) ... (filteredData.last?.t ?? Date())
-    }
-    
-    var chartYScaleDomain: ClosedRange<Double> {
-        let min = lowestValue
-        let max = highestValue
-        let padding = (max - min) * 0.1 // Add 10% padding
-        return (min - padding) ... (max + padding)
+
+    var chartId: String {
+        return "\(lastUpdated.timeIntervalSince1970)"
     }
     
     var body: some View {
@@ -107,7 +97,8 @@ struct PortfolioView: View {
                 data: normalizedData,
                 range: range,
             )
-            .opacity(dataService.isLoading ? 0.3 : 1.0)
+            .id(chartId)
+            .opacity(isLoading ? 0.3 : 1.0)
             
             if showPicker {
                 Picker(selection: $range, label: EmptyView()) {
@@ -117,22 +108,30 @@ struct PortfolioView: View {
                 }
                 .labelsHidden()
                 .pickerStyle(.segmented)
+                .disabled(isLoading)
             }
         }
         .onChange(of: range) { oldValue, newValue in
-            print("Range changed from \(oldValue) to \(newValue)")
-            refreshData()
+            Task { await fetchData() }
         }
         .task {
-            print("Initial data load")
-            refreshData()
+            await fetchData()
         }
     }
-    
-    private func refreshData() {
-        Task {
-            await dataService.refreshAllData()
-        }
+
+    func fetchData() async {
+        guard !isLoading else { return }
+        guard let userId = dataService.currentUserId else { return }
+        
+        isLoading = true
+        defer { isLoading = false }
+        
+        guard let data = try? await dataService.fetchPnL(
+            userId: userId,
+            interval: PolymarketDataService.PnLInterval(rawValue: range.rawValue) ?? .day
+        ) else { return }
+        self.data = data
+        lastUpdated = Date()
     }
 }
 

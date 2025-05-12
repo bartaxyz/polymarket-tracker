@@ -58,10 +58,10 @@ struct ProfitLossChart: View {
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                Chart(data, id: \.t) {
+                Chart(data, id: \.t) { point in
                     LineMark(
-                        x: .value("Time", $0.t),
-                        y: .value("PnL", $0.p)
+                        x: .value("Time", point.t),
+                        y: .value("PnL", point.p)
                     )
                     .interpolationMethod(.catmullRom)
                     
@@ -70,9 +70,9 @@ struct ProfitLossChart: View {
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 2]))
                     
                     AreaMark(
-                        x: .value("Time", $0.t),
+                        x: .value("Time", point.t),
                         yStart: .value("Lowest Value", lowestValue),
-                        yEnd: .value("PnL", $0.p)
+                        yEnd: .value("PnL", point.p)
                     )
                     .interpolationMethod(.catmullRom)
                     .foregroundStyle(
@@ -107,6 +107,12 @@ struct ProfitLossChart: View {
                 }
             }
         }
+    }
+}
+
+extension ProfitLossChart: Equatable {
+    static func == (lhs: ProfitLossChart, rhs: ProfitLossChart) -> Bool {
+        lhs.data == rhs.data && lhs.range == rhs.range
     }
 }
 

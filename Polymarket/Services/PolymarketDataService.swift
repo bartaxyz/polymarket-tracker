@@ -13,12 +13,9 @@ class PolymarketDataService: ObservableObject {
     static let shared = PolymarketDataService()
     
     private let session = URLSession.shared
-    private let cache = NSCache<NSString, CacheEntry>()
-    private static let cacheDuration: TimeInterval = 300 // 5 minutes
     
     // Published properties for observable state
     @Published private(set) var portfolioValue: Double?
-    @Published private(set) var pnlData: [PnLDataPoint]?
     @Published private(set) var positions: [Position]?
     @Published private(set) var cashBalance: Double?
     @Published private(set) var isLoading: Bool = false
@@ -29,72 +26,31 @@ class PolymarketDataService: ObservableObject {
     @Published private(set) var hasMoreSearchResults: Bool = false
     @Published private(set) var isSearching: Bool = false
     
-    private var currentUserId: String?
+    private(set) var currentUserId: String?
     private var searchPage: Int = 1
     private var searchQuery: String = ""
     
     private init() {}
     
-    class CacheEntry {
-        let data: Data
-        let timestamp: Date
-        
-        init(data: Data) {
-            self.data = data
-            self.timestamp = Date()
-        }
-        
-        var isValid: Bool {
-            return Date().timeIntervalSince(timestamp) < PolymarketDataService.cacheDuration
-        }
-    }
-    
-    // Method to invalidate all cached data
-    func invalidateCache() {
-        cache.removeAllObjects()
-    }
-    
-    // Helper method to make HTTP requests with caching
+    // Helper method to make HTTP requests without caching
     private func makeRequest(
         url: URL,
         method: String = "GET",
         headers: [String: String] = [:],
         body: Data? = nil
     ) async throws -> Data {
-        let cacheKey = url.absoluteString as NSString
-        
-        // Only check cache for GET requests
-        if method == "GET" {
-            if let cachedEntry = cache.object(forKey: cacheKey), cachedEntry.isValid {
-                return cachedEntry.data
-            }
-        }
-        
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.httpBody = body
-        
-        // Add default headers
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Add custom headers
         for (key, value) in headers {
             request.addValue(value, forHTTPHeaderField: key)
         }
-        
         let (data, response) = try await session.data(for: request)
-        
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)
         }
-        
-        // Only cache GET requests
-        if method == "GET" {
-            let cacheEntry = CacheEntry(data: data)
-            cache.setObject(cacheEntry, forKey: cacheKey)
-        }
-        
         return data
     }
     
@@ -110,26 +66,33 @@ class PolymarketDataService: ObservableObject {
     
     func refreshAllData() async {
         guard let userId = currentUserId else { return }
-        
         isLoading = true
         error = nil
-        
+
+        var firstError: Error? = nil
+
         do {
-            async let portfolioTask = fetchPortfolio(userId: userId)
-            async let pnlTask = fetchPnL(userId: userId)
-            async let positionsTask = fetchPositions(userId: userId)
-            async let cashBalanceTask = fetchCashBalance(userId: userId)
-            
-            let (portfolio, pnl, positions, cash) = try await (portfolioTask, pnlTask, positionsTask, cashBalanceTask)
-            
-            self.portfolioValue = portfolio
-            self.pnlData = pnl
-            self.positions = positions
-            self.cashBalance = cash
+            self.portfolioValue = try await fetchPortfolio(userId: userId)
         } catch {
-            self.error = error
+            if firstError == nil { firstError = error }
+            self.portfolioValue = nil
         }
-        
+
+        do {
+            self.positions = try await fetchPositions(userId: userId)
+        } catch {
+            if firstError == nil { firstError = error }
+            self.positions = nil
+        }
+
+        do {
+            self.cashBalance = try await fetchCashBalance(userId: userId)
+        } catch {
+            if firstError == nil { firstError = error }
+            self.cashBalance = nil
+        }
+
+        self.error = firstError
         isLoading = false
     }
     
@@ -187,7 +150,7 @@ class PolymarketDataService: ObservableObject {
         return (json.first?["value"] as? Double) ?? 0.0
     }
     
-    func fetchPnL(userId: String, interval: PnLInterval = .day, fidelity: PnLFidelity? = nil) async throws -> [PnLDataPoint] {
+    func fetchPnL(userId: String, interval: PnLInterval = .max, fidelity: PnLFidelity? = .oneHour) async throws -> [PnLDataPoint] {
         let effectiveFidelity = fidelity ?? interval.defaultFidelity
         let url = URL(string: "https://user-pnl-api.polymarket.com/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
         let data = try await makeRequest(url: url)
@@ -217,12 +180,12 @@ class PolymarketDataService: ObservableObject {
     func fetchPositions(userId: String, sizeThreshold: Double = 0.1, limit: Int = 50, offset: Int = 0, sortBy: String = "CURRENT", sortDirection: String = "DESC") async throws -> [Position] {
         var components = URLComponents(string: "https://data-api.polymarket.com/positions")!
         components.queryItems = [
-            URLQueryItem(name: "user", value: userId),
-            URLQueryItem(name: "sizeThreshold", value: String(sizeThreshold)),
-            URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "offset", value: String(offset)),
-            URLQueryItem(name: "sortBy", value: sortBy),
-            URLQueryItem(name: "sortDirection", value: sortDirection)
+            .init(name: "user", value: userId),
+            .init(name: "sizeThreshold", value: String(sizeThreshold)),
+            .init(name: "limit", value: String(limit)),
+            .init(name: "offset", value: String(offset)),
+            .init(name: "sortBy", value: sortBy),
+            .init(name: "sortDirection", value: sortDirection)
         ]
         
         guard let url = components.url else {

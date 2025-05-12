@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PortfolioSidebarSectionView: View {
-    @StateObject private var dataService = PolymarketDataService.shared
+    @ObservedObject private var dataService = PolymarketDataService.shared
     
     var body: some View {
         Section {
