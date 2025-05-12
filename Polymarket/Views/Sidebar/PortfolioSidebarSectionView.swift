@@ -8,23 +8,20 @@
 import SwiftUI
 
 struct PortfolioSidebarSectionView: View {
-    var userId: String
-    var userData: PolymarketDataService.UserData?
+    @ObservedObject private var dataService = PolymarketDataService.shared
     
     var body: some View {
         Section {
-            ProfitLossChart(
-                userId: userId,
+            PortfolioView(
                 showHeader: true,
                 showPicker: true,
-                range: .today,
             )
             .frame(height: 200)
         } header: {
             Text("Portfolio")
         }
         
-        if let positions = userData?.positions {
+        if let positions = dataService.positions {
             Section {
                 ForEach(positions, id: \.conditionId) { position in
                     NavigationLink(
@@ -40,11 +37,22 @@ struct PortfolioSidebarSectionView: View {
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        VStack(alignment: .trailing) {
-                            Text(position.currentValue, format: .currency(code: "USD"))
-                                .bold()
-                            Text(position.percentPnl / 100, format: .percent.precision(.fractionLength(2)))
-                                .foregroundColor(position.percentPnl >= 0 ? .green : .red)
+                        VStack(alignment: .trailing, spacing: 2) {
+                            CurrencyText(
+                                amount: position.cashPnl,
+                                signature: .always,
+                                isDelta: true,
+                                // hasBackground: true
+                            )
+                            .fontWeight(.semibold)
+                            .font(.caption)
+                            PercentageText(
+                                amount: position.percentPnl / 100,
+                                signature: .never,
+                                hasArrow: true
+                            )
+                            .font(.caption)
+                            .opacity(0.5)
                         }
                     }
                 }
@@ -56,7 +64,7 @@ struct PortfolioSidebarSectionView: View {
 }
 
 #Preview {
-    PortfolioSidebarSectionView(
-        userId: "0x235A480a9CCB7aDA0Ad2DC11dAC3a11FB433Febd"
-    )
+    PortfolioSidebarSectionView()
+    .frame(width: 320)
+    .padding()
 }

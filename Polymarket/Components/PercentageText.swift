@@ -1,13 +1,13 @@
 //
-//  CurrencyText.swift
+//  PercentageText.swift
 //  Polymarket
 //
-//  Created by Ondřej Bárta on 8/5/25.
+//  Created by Ondřej Bárta on 10/5/25.
 //
 
 import SwiftUI
 
-struct CurrencyText: View {
+struct PercentageText: View {
     enum SignatureStrategy {
         case automatic
         case always
@@ -22,8 +22,7 @@ struct CurrencyText: View {
     
     private var formattedAmount: String {
         let numberFormatter = NumberFormatter()
-        numberFormatter.numberStyle = .currency
-        numberFormatter.currencySymbol = "$"
+        numberFormatter.numberStyle = .percent
         numberFormatter.minimumFractionDigits = 2
         numberFormatter.maximumFractionDigits = 2
         
@@ -35,7 +34,7 @@ struct CurrencyText: View {
             numberFormatter.negativePrefix = ""
         }
         
-        guard let amount = amount else { return "- --.-- $" }
+        guard let amount = amount else { return "- --.-- %" }
         return numberFormatter.string(from: NSNumber(value: amount)) ?? "-"
     }
     
@@ -84,19 +83,19 @@ struct CurrencyText: View {
 
 #Preview {
     VStack(spacing: 10) {
-        CurrencyText(amount: nil)
-        CurrencyText(amount: 123.45)
-        CurrencyText(amount: -67.89)
-        CurrencyText(amount: 42, signature: .always)
-        CurrencyText(amount: -42, signature: .always)
-        CurrencyText(amount: 42, signature: .never)
-        CurrencyText(amount: -42, signature: .never)
-        CurrencyText(amount: 42, hasBackground: true)
-        CurrencyText(amount: -42, hasBackground: true)
-        CurrencyText(amount: 42, isDelta: true)
-        CurrencyText(amount: -42, isDelta: true)
-        CurrencyText(amount: 42, hasArrow: true)
-        CurrencyText(amount: -42, hasArrow: true)
+        PercentageText(amount: nil)
+        PercentageText(amount: 1.2345)
+        PercentageText(amount: -0.6789)
+        PercentageText(amount: 0.42, signature: .always)
+        PercentageText(amount: -0.42, signature: .always)
+        PercentageText(amount: 0.42, signature: .never)
+        PercentageText(amount: -0.42, signature: .never)
+        PercentageText(amount: 0.42, hasBackground: true)
+        PercentageText(amount: -0.42, hasBackground: true)
+        PercentageText(amount: 0.42, isDelta: true)
+        PercentageText(amount: -0.42, isDelta: true)
+        PercentageText(amount: 0.42, hasArrow: true)
+        PercentageText(amount: -0.42, hasArrow: true)
     }
     .padding()
 }

@@ -63,6 +63,7 @@
 			membershipExceptions = (
 				Assets.xcassets,
 				Components/CurrencyText.swift,
+				Components/PercentageText.swift,
 				Components/ProfitLossChart.swift,
 				Models/WalletConnectModel.swift,
 				Services/PolymarketDataService.swift,

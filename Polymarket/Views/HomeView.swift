@@ -18,39 +18,36 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     var wallet: WalletConnectModel?
     
-    @State private var userData: PolymarketDataService.UserData?
+    @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var searchQuery: String = ""
-    @State private var searchResults: [PolymarketDataService.Event] = []
-    @State private var isSearching = false
-    @State private var hasMoreSearchResults = false
-    @State private var searchPage = 1
     
     var selectedPosition: PolymarketDataService.Position? {
-        userData?.positions?.first { $0.conditionId == selectedPositionId }
+        dataService.positions?.first { $0.conditionId == selectedPositionId }
     }
     
     var body: some View {
         NavigationSplitView {
             List {
-                if !searchResults.isEmpty {
+                if !dataService.searchResults.isEmpty {
                     SearchResultsSection(
-                        results: searchResults,
-                        hasMore: hasMoreSearchResults,
+                        results: dataService.searchResults,
+                        hasMore: dataService.hasMoreSearchResults,
                         selectedId: selectedPositionId,
                         onSelect: { id in
                             selectedPositionId = id
                         },
-                        onLoadMore: loadMoreSearchResults
+                        onLoadMore: {
+                            Task {
+                                await dataService.loadMoreSearchResults()
+                            }
+                        }
                     )
                 }
                 
                 if let userId = wallet?.polymarketAddress {
-                    PortfolioSidebarSectionView(
-                        userId: userId,
-                        userData: userData
-                    )
+                    PortfolioSidebarSectionView()
                 }
                 
                 if wallet == nil {
@@ -74,20 +71,21 @@ struct HomeView: View {
                     }
                 }
                 
-                DiscoverSection()
+                // DiscoverSection()
             }
             .searchable(text: $searchQuery, prompt: "Search markets...")
             .onSubmit(of: .search) {
-                performSearch()
+                Task {
+                    await dataService.searchEvents(query: searchQuery)
+                }
             }
             .onChange(of: searchQuery) { _, newQuery in
                 if newQuery.isEmpty {
-                    searchResults = []
-                    hasMoreSearchResults = false
+                    dataService.clearSearchResults()
                 }
             }
             .refreshable {
-                syncRefreshData()
+                await refreshData()
             }
             .toolbar {
     #if os(iOS)
@@ -128,20 +126,18 @@ struct HomeView: View {
             ConnectWalletManuallyView()
         }
         .onChange(of: wallet) { _, wallet in
-            syncRefreshData()
+            if let address = wallet?.polymarketAddress {
+                dataService.setUser(address)
+            }
         }
         .navigationTitle("")
         .task {
-            await refreshData()
+            if let address = wallet?.polymarketAddress {
+                dataService.setUser(address)
+            }
         }
     }
     
-    private func syncRefreshData() {
-        Task {
-            await refreshData()
-        }
-    }
-
     private func connectWallet() {
         isConnectWalletPresented.toggle()
     }
@@ -153,48 +149,8 @@ struct HomeView: View {
     }
     
     private func refreshData() async {
-        guard let address = wallet?.polymarketAddress else { return }
-        userData = await PolymarketDataService.fetchUserData(userId: address)
-    }
-    
-    private func performSearch() {
-        guard !searchQuery.isEmpty else {
-            searchResults = []
-            hasMoreSearchResults = false
-            return
-        }
-        
-        isSearching = true
-        searchPage = 1
-        
-        Task {
-            do {
-                let response = try await PolymarketDataService.searchEvents(query: searchQuery, page: searchPage)
-                searchResults = response.events
-                hasMoreSearchResults = response.hasMore
-            } catch {
-                print("Search error: \(error)")
-            }
-            isSearching = false
-        }
-    }
-    
-    private func loadMoreSearchResults() {
-        guard hasMoreSearchResults, !isSearching else { return }
-        
-        isSearching = true
-        searchPage += 1
-        
-        Task {
-            do {
-                let response = try await PolymarketDataService.searchEvents(query: searchQuery, page: searchPage)
-                searchResults.append(contentsOf: response.events)
-                hasMoreSearchResults = response.hasMore
-            } catch {
-                print("Load more search results error: \(error)")
-                searchPage -= 1
-            }
-            isSearching = false
+        if let address = wallet?.polymarketAddress {
+            await dataService.refreshAllData()
         }
     }
 }
@@ -253,33 +209,35 @@ private struct EventRowView: View {
     let isSelected: Bool
     
     var body: some View {
-        HStack(spacing: 12) {
-            if let imageUrl = event.imageUrl,
-               let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Color.gray.opacity(0.2)
-                }
-                .frame(width: 40, height: 40)
-                .cornerRadius(8)
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.2))
+        NavigationLink(destination: EmptyView()) {
+            HStack(spacing: 12) {
+                if let imageUrl = event.imageUrl,
+                let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Color.gray.opacity(0.2)
+                    }
                     .frame(width: 40, height: 40)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(event.title)
-                    .lineLimit(2)
-                    .font(.subheadline)
+                    .cornerRadius(8)
+                } else {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.gray.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                }
                 
-                if let volume = event.volume {
-                    Text("Volume: $\(String(format: "%.2f", volume))")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title)
+                        .lineLimit(2)
+                        .font(.subheadline)
+                    
+                    if let volume = event.volume {
+                        Text("Volume: $\(String(format: "%.2f", volume))")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
                 }
             }
         }
