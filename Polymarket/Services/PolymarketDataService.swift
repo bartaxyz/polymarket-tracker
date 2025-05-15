@@ -261,10 +261,11 @@ class PolymarketDataService: ObservableObject {
         closed: Bool = false,
         order: String = "volume24hr",
         ascending: Bool = false,
-        offset: Int = 0
+        offset: Int = 0,
+        tagSlug: String? = nil
     ) async throws -> PaginatedEventsResponse {
         var components = URLComponents(string: "https://gamma-api.polymarket.com/events/pagination")!
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "active", value: String(active)),
             URLQueryItem(name: "archived", value: String(archived)),
@@ -273,6 +274,12 @@ class PolymarketDataService: ObservableObject {
             URLQueryItem(name: "ascending", value: String(ascending)),
             URLQueryItem(name: "offset", value: String(offset))
         ]
+        
+        if let tagSlug = tagSlug, tagSlug != "all" {
+            queryItems.append(URLQueryItem(name: "tag_slug", value: tagSlug))
+        }
+        
+        components.queryItems = queryItems
         
         guard let url = components.url else {
             throw URLError(.badURL)

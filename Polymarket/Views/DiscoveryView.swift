@@ -35,6 +35,9 @@ struct DiscoveryView: View {
                                 isSelected: selectedTag == nil,
                                 action: {
                                     selectedTag = nil
+                                    Task {
+                                        await viewModel.fetchEvents()
+                                    }
                                 }
                             )
                             
@@ -44,6 +47,9 @@ struct DiscoveryView: View {
                                     isSelected: selectedTag == tag.slug,
                                     action: {
                                         selectedTag = tag.slug
+                                        Task {
+                                            await viewModel.fetchEvents(withTag: tag.slug)
+                                        }
                                     }
                                 )
                             }
@@ -54,13 +60,19 @@ struct DiscoveryView: View {
                     if viewModel.isLoading {
                         ProgressView()
                             .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 40)
                     } else {
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(viewModel.filteredEvents(selectedTag: selectedTag), id: \.id) { event in
+                            ForEach(viewModel.events, id: \.id) { event in
                                 EventCard(event: event)
                             }
                             
-                            if viewModel.hasMoreEvents {
+                            if viewModel.isLoadingMore {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .gridCellColumns(columns.count)
+                            } else if viewModel.hasMoreEvents {
                                 Button(action: {
                                     Task {
                                         await viewModel.loadMoreEvents()
@@ -87,7 +99,7 @@ struct DiscoveryView: View {
             }
             .refreshable {
                 await viewModel.fetchTags()
-                await viewModel.fetchEvents()
+                await viewModel.fetchEvents(withTag: selectedTag)
             }
         }
     }
@@ -215,10 +227,12 @@ class DiscoveryViewModel: ObservableObject {
     @Published private(set) var tags: [PolymarketDataService.Tag] = []
     @Published private(set) var events: [PolymarketDataService.GammaEvent] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingMore = false
     @Published private(set) var hasMoreEvents = false
     
     private var currentOffset = 0
     private let pageSize = 20
+    private var currentTagSlug: String? = nil
     
     func fetchTags() async {
         do {
@@ -228,14 +242,18 @@ class DiscoveryViewModel: ObservableObject {
         }
     }
     
-    func fetchEvents() async {
+    func fetchEvents(withTag tagSlug: String? = nil) async {
+        guard !isLoading else { return }
+        
         isLoading = true
         currentOffset = 0
+        currentTagSlug = tagSlug
         
         do {
             let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
                 limit: pageSize,
-                offset: currentOffset
+                offset: currentOffset,
+                tagSlug: tagSlug
             )
             events = response.data
             hasMoreEvents = response.pagination.hasMore
@@ -247,15 +265,16 @@ class DiscoveryViewModel: ObservableObject {
     }
     
     func loadMoreEvents() async {
-        guard !isLoading else { return }
+        guard !isLoading && !isLoadingMore && hasMoreEvents else { return }
         
-        isLoading = true
+        isLoadingMore = true
         currentOffset += pageSize
         
         do {
             let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
                 limit: pageSize,
-                offset: currentOffset
+                offset: currentOffset,
+                tagSlug: currentTagSlug
             )
             events.append(contentsOf: response.data)
             hasMoreEvents = response.pagination.hasMore
@@ -264,15 +283,7 @@ class DiscoveryViewModel: ObservableObject {
             currentOffset -= pageSize
         }
         
-        isLoading = false
-    }
-    
-    func filteredEvents(selectedTag: String?) -> [PolymarketDataService.GammaEvent] {
-        guard let selectedTag = selectedTag else { return events }
-        return events.filter { event in
-            guard let tags = event.tags else { return false }
-            return tags.contains { $0.slug == selectedTag }
-        }
+        isLoadingMore = false
     }
 }
 
