@@ -46,12 +46,21 @@ class PolymarketDataService: ObservableObject {
         for (key, value) in headers {
             request.addValue(value, forHTTPHeaderField: key)
         }
-        let (data, response) = try await session.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw URLError(.badServerResponse)
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200...299).contains(httpResponse.statusCode) else {
+                throw URLError(.badServerResponse)
+            }
+            return data
+        } catch {
+            // Handle task cancellation gracefully
+            if let urlError = error as? URLError, urlError.code == .cancelled {
+                print("Request cancelled: \(url.absoluteString)")
+            }
+            throw error
         }
-        return data
     }
     
     // MARK: - Public Methods

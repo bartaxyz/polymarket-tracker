@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct DiscoveryView: View {
+    // Use a State flag to prevent loading when the view isn't visible
+    @State private var isViewActive = false
     @StateObject private var viewModel = DiscoveryViewModel()
     @State private var selectedTag: String?
     
@@ -34,9 +36,9 @@ struct DiscoveryView: View {
                                 ),
                                 isSelected: selectedTag == nil,
                                 action: {
-                                    selectedTag = nil
-                                    Task {
-                                        await viewModel.fetchEvents()
+                                    if isViewActive {
+                                        selectedTag = nil
+                                        viewModel.fetchEvents()
                                     }
                                 }
                             )
@@ -46,9 +48,9 @@ struct DiscoveryView: View {
                                     tag: tag,
                                     isSelected: selectedTag == tag.slug,
                                     action: {
-                                        selectedTag = tag.slug
-                                        Task {
-                                            await viewModel.fetchEvents(withTag: tag.slug)
+                                        if isViewActive {
+                                            selectedTag = tag.slug
+                                            viewModel.fetchEvents(withTag: tag.slug)
                                         }
                                     }
                                 )
@@ -74,8 +76,8 @@ struct DiscoveryView: View {
                                     .gridCellColumns(columns.count)
                             } else if viewModel.hasMoreEvents {
                                 Button(action: {
-                                    Task {
-                                        await viewModel.loadMoreEvents()
+                                    if isViewActive {
+                                        viewModel.loadMoreEvents()
                                     }
                                 }) {
                                     Text("Load More")
@@ -93,13 +95,26 @@ struct DiscoveryView: View {
                 .padding(.vertical)
             }
             .navigationTitle("Discover")
-            .task {
-                await viewModel.fetchTags()
-                await viewModel.fetchEvents()
+            .onAppear {
+                isViewActive = true
+                // Only fetch if we don't have data yet
+                if viewModel.tags.isEmpty {
+                    Task {
+                        await viewModel.fetchTags()
+                    }
+                }
+                if viewModel.events.isEmpty {
+                    viewModel.fetchEvents(withTag: selectedTag)
+                }
+            }
+            .onDisappear {
+                isViewActive = false
             }
             .refreshable {
-                await viewModel.fetchTags()
-                await viewModel.fetchEvents(withTag: selectedTag)
+                if isViewActive {
+                    await viewModel.fetchTags()
+                    viewModel.fetchEvents(withTag: selectedTag)
+                }
             }
         }
     }
@@ -234,56 +249,90 @@ class DiscoveryViewModel: ObservableObject {
     private let pageSize = 20
     private var currentTagSlug: String? = nil
     
+    // Semaphore for safe fetch 
+    private let fetchSemaphore = DispatchSemaphore(value: 1)
+    
     func fetchTags() async {
+        // Simplest approach - fetch tags directly
         do {
-            tags = try await PolymarketDataService.shared.fetchTags()
+            let loadedTags = try await PolymarketDataService.shared.fetchTags()
+            self.tags = loadedTags
         } catch {
-            print("Error fetching tags: \(error)")
+            let nsError = error as NSError
+            // Skip logging for cancelled requests
+            if nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled {
+                print("Error fetching tags: \(error)")
+            }
         }
     }
     
-    func fetchEvents(withTag tagSlug: String? = nil) async {
-        guard !isLoading else { return }
-        
-        isLoading = true
-        currentOffset = 0
-        currentTagSlug = tagSlug
-        
-        do {
-            let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
-                limit: pageSize,
-                offset: currentOffset,
-                tagSlug: tagSlug
-            )
-            events = response.data
-            hasMoreEvents = response.pagination.hasMore
-        } catch {
-            print("Error fetching events: \(error)")
+    func fetchEvents(withTag tagSlug: String? = nil) {
+        // Use Task to avoid needing to mark the function as async
+        Task {
+            // Skip if already loading
+            guard !isLoading else { return }
+            
+            // Safe check to prevent multiple loads
+            isLoading = true
+            
+            // Store the tag we're loading for
+            currentOffset = 0
+            currentTagSlug = tagSlug
+            
+            do {
+                let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
+                    limit: pageSize,
+                    offset: currentOffset,
+                    tagSlug: tagSlug
+                )
+                
+                // Only update state if we're still loading (not cancelled)
+                if isLoading {
+                    events = response.data
+                    hasMoreEvents = response.pagination.hasMore
+                }
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled {
+                    print("Error fetching events: \(error)")
+                }
+            }
+            
+            isLoading = false
         }
-        
-        isLoading = false
     }
     
-    func loadMoreEvents() async {
+    func loadMoreEvents() {
+        // Skip if already loading
         guard !isLoading && !isLoadingMore && hasMoreEvents else { return }
         
-        isLoadingMore = true
-        currentOffset += pageSize
-        
-        do {
-            let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
-                limit: pageSize,
-                offset: currentOffset,
-                tagSlug: currentTagSlug
-            )
-            events.append(contentsOf: response.data)
-            hasMoreEvents = response.pagination.hasMore
-        } catch {
-            print("Error loading more events: \(error)")
-            currentOffset -= pageSize
+        // Use Task to avoid needing to mark the function as async
+        Task {
+            isLoadingMore = true
+            let nextOffset = currentOffset + pageSize
+            
+            do {
+                let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
+                    limit: pageSize,
+                    offset: nextOffset,
+                    tagSlug: currentTagSlug
+                )
+                
+                // Only update state if we're still loading (not cancelled)
+                if isLoadingMore {
+                    events.append(contentsOf: response.data)
+                    hasMoreEvents = response.pagination.hasMore
+                    currentOffset = nextOffset
+                }
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled {
+                    print("Error loading more events: \(error)")
+                }
+            }
+            
+            isLoadingMore = false
         }
-        
-        isLoadingMore = false
     }
 }
 
