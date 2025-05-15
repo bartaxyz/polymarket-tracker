@@ -8,10 +8,15 @@
 import SwiftUI
 
 struct DiscoveryView: View {
-    // Use a State flag to prevent loading when the view isn't visible
-    @State private var isViewActive = false
-    @StateObject private var viewModel = DiscoveryViewModel()
+    // State
+    @State private var tags: [PolymarketDataService.Tag] = []
+    @State private var events: [PolymarketDataService.GammaEvent] = []
     @State private var selectedTag: String?
+    @State private var isLoading = false
+    @State private var isLoadingMore = false
+    @State private var hasMoreEvents = false
+    @State private var currentOffset = 0
+    private let pageSize = 20
     
     private let columns = [
         GridItem(.adaptive(minimum: 300, maximum: 400), spacing: 16)
@@ -36,22 +41,18 @@ struct DiscoveryView: View {
                                 ),
                                 isSelected: selectedTag == nil,
                                 action: {
-                                    if isViewActive {
-                                        selectedTag = nil
-                                        viewModel.fetchEvents()
-                                    }
+                                    selectedTag = nil
+                                    loadEvents()
                                 }
                             )
                             
-                            ForEach(viewModel.tags, id: \.id) { tag in
+                            ForEach(tags, id: \.id) { tag in
                                 TagButton(
                                     tag: tag,
                                     isSelected: selectedTag == tag.slug,
                                     action: {
-                                        if isViewActive {
-                                            selectedTag = tag.slug
-                                            viewModel.fetchEvents(withTag: tag.slug)
-                                        }
+                                        selectedTag = tag.slug
+                                        loadEvents(withTagSlug: tag.slug)
                                     }
                                 )
                             }
@@ -59,26 +60,24 @@ struct DiscoveryView: View {
                         .padding(.horizontal)
                     }
                     
-                    if viewModel.isLoading {
+                    if isLoading && events.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 40)
                     } else {
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(viewModel.events, id: \.id) { event in
+                            ForEach(events, id: \.id) { event in
                                 EventCard(event: event)
                             }
                             
-                            if viewModel.isLoadingMore {
+                            if isLoadingMore {
                                 ProgressView()
                                     .frame(maxWidth: .infinity)
                                     .padding()
                                     .gridCellColumns(columns.count)
-                            } else if viewModel.hasMoreEvents {
+                            } else if hasMoreEvents {
                                 Button(action: {
-                                    if isViewActive {
-                                        viewModel.loadMoreEvents()
-                                    }
+                                    loadMoreEvents()
                                 }) {
                                     Text("Load More")
                                         .frame(maxWidth: .infinity)
@@ -95,27 +94,83 @@ struct DiscoveryView: View {
                 .padding(.vertical)
             }
             .navigationTitle("Discover")
-            .onAppear {
-                isViewActive = true
-                // Only fetch if we don't have data yet
-                if viewModel.tags.isEmpty {
-                    Task {
-                        await viewModel.fetchTags()
-                    }
+            .task {
+                if tags.isEmpty {
+                    await loadTags()
                 }
-                if viewModel.events.isEmpty {
-                    viewModel.fetchEvents(withTag: selectedTag)
+                if events.isEmpty {
+                    loadEvents(withTagSlug: selectedTag)
                 }
-            }
-            .onDisappear {
-                isViewActive = false
             }
             .refreshable {
-                if isViewActive {
-                    await viewModel.fetchTags()
-                    viewModel.fetchEvents(withTag: selectedTag)
+                await loadTags()
+                loadEvents(withTagSlug: selectedTag)
+            }
+        }
+    }
+    
+    // MARK: - Data Loading
+    
+    private func loadTags() async {
+        do {
+            tags = try await PolymarketDataService.shared.fetchTags()
+        } catch {
+            if (error as NSError).code != NSURLErrorCancelled {
+                print("Error fetching tags: \(error)")
+            }
+        }
+    }
+    
+    private func loadEvents(withTagSlug tagSlug: String? = nil) {
+        guard !isLoading else { return }
+        
+        Task { @MainActor in
+            isLoading = true
+            currentOffset = 0
+            
+            do {
+                let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
+                    limit: pageSize,
+                    offset: currentOffset,
+                    tagSlug: tagSlug
+                )
+                
+                events = response.data
+                hasMoreEvents = response.pagination.hasMore
+            } catch {
+                if (error as NSError).code != NSURLErrorCancelled {
+                    print("Error fetching events: \(error)")
                 }
             }
+            
+            isLoading = false
+        }
+    }
+    
+    private func loadMoreEvents() {
+        guard !isLoading && !isLoadingMore && hasMoreEvents else { return }
+        
+        Task { @MainActor in
+            isLoadingMore = true
+            let nextOffset = currentOffset + pageSize
+            
+            do {
+                let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
+                    limit: pageSize,
+                    offset: nextOffset,
+                    tagSlug: selectedTag
+                )
+                
+                events.append(contentsOf: response.data)
+                hasMoreEvents = response.pagination.hasMore
+                currentOffset = nextOffset
+            } catch {
+                if (error as NSError).code != NSURLErrorCancelled {
+                    print("Error loading more events: \(error)")
+                }
+            }
+            
+            isLoadingMore = false
         }
     }
 }
@@ -237,104 +292,6 @@ struct StatView: View {
     }
 }
 
-@MainActor
-class DiscoveryViewModel: ObservableObject {
-    @Published private(set) var tags: [PolymarketDataService.Tag] = []
-    @Published private(set) var events: [PolymarketDataService.GammaEvent] = []
-    @Published private(set) var isLoading = false
-    @Published private(set) var isLoadingMore = false
-    @Published private(set) var hasMoreEvents = false
-    
-    private var currentOffset = 0
-    private let pageSize = 20
-    private var currentTagSlug: String? = nil
-    
-    // Semaphore for safe fetch 
-    private let fetchSemaphore = DispatchSemaphore(value: 1)
-    
-    func fetchTags() async {
-        // Simplest approach - fetch tags directly
-        do {
-            let loadedTags = try await PolymarketDataService.shared.fetchTags()
-            self.tags = loadedTags
-        } catch {
-            let nsError = error as NSError
-            // Skip logging for cancelled requests
-            if nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled {
-                print("Error fetching tags: \(error)")
-            }
-        }
-    }
-    
-    func fetchEvents(withTag tagSlug: String? = nil) {
-        // Use Task to avoid needing to mark the function as async
-        Task {
-            // Skip if already loading
-            guard !isLoading else { return }
-            
-            // Safe check to prevent multiple loads
-            isLoading = true
-            
-            // Store the tag we're loading for
-            currentOffset = 0
-            currentTagSlug = tagSlug
-            
-            do {
-                let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
-                    limit: pageSize,
-                    offset: currentOffset,
-                    tagSlug: tagSlug
-                )
-                
-                // Only update state if we're still loading (not cancelled)
-                if isLoading {
-                    events = response.data
-                    hasMoreEvents = response.pagination.hasMore
-                }
-            } catch {
-                let nsError = error as NSError
-                if nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled {
-                    print("Error fetching events: \(error)")
-                }
-            }
-            
-            isLoading = false
-        }
-    }
-    
-    func loadMoreEvents() {
-        // Skip if already loading
-        guard !isLoading && !isLoadingMore && hasMoreEvents else { return }
-        
-        // Use Task to avoid needing to mark the function as async
-        Task {
-            isLoadingMore = true
-            let nextOffset = currentOffset + pageSize
-            
-            do {
-                let response = try await PolymarketDataService.shared.fetchPaginatedEvents(
-                    limit: pageSize,
-                    offset: nextOffset,
-                    tagSlug: currentTagSlug
-                )
-                
-                // Only update state if we're still loading (not cancelled)
-                if isLoadingMore {
-                    events.append(contentsOf: response.data)
-                    hasMoreEvents = response.pagination.hasMore
-                    currentOffset = nextOffset
-                }
-            } catch {
-                let nsError = error as NSError
-                if nsError.domain != NSURLErrorDomain || nsError.code != NSURLErrorCancelled {
-                    print("Error loading more events: \(error)")
-                }
-            }
-            
-            isLoadingMore = false
-        }
-    }
-}
 
 #Preview {
     DiscoveryView()
