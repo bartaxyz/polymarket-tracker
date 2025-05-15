@@ -71,7 +71,7 @@ struct HomeView: View {
                     }
                 }
                 
-                // DiscoverSection()
+                DiscoverSection()
             }
             .searchable(text: $searchQuery, prompt: "Search markets...")
             .onSubmit(of: .search) {
@@ -120,7 +120,7 @@ struct HomeView: View {
                 }
             }
         } detail: {
-            Text("TODO")
+            DiscoveryView()
         }
         .sheet(isPresented: $isConnectWalletPresented) {
             ConnectWalletManuallyView()
@@ -183,10 +183,11 @@ private struct SearchResultsSection: View {
 private struct DiscoverSection: View {
     var body: some View {
         Section {
-            NavigationLink(destination: Text("Trending")) {
-                Label("Trending", systemImage: "chart.line.uptrend.xyaxis")
+            NavigationLink(destination: DiscoveryView()) {
+                Label("Discover", systemImage: "sparkles")
             }
-            NavigationLink(destination: Text("New")) {
+            /*
+             NavigationLink(destination: Text("New")) {
                 Label("New", systemImage: "sparkles")
             }
             NavigationLink(destination: Text("Politics")) {
@@ -197,7 +198,7 @@ private struct DiscoverSection: View {
             }
             NavigationLink(destination: Text("Crypto")) {
                 Label("Crypto", systemImage: "bitcoinsign")
-            }
+            }*/
         } header: {
             Text("Discover")
         }
@@ -209,7 +210,7 @@ private struct EventRowView: View {
     let isSelected: Bool
     
     var body: some View {
-        NavigationLink(destination: EmptyView()) {
+        NavigationLink(destination: MarketDetailView(market: .event(event))) {
             HStack(spacing: 12) {
                 if let imageUrl = event.imageUrl,
                 let url = URL(string: imageUrl) {

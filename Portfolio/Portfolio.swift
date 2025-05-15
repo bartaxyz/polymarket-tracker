@@ -41,8 +41,16 @@ struct Provider: AppIntentTimelineProvider {
         
         let polymarketAddress = wallets?.last?.polymarketAddress ?? nil
         
-        let portfolioValue: Double? = try? await PolymarketDataService.shared.fetchPortfolio(userId: polymarketAddress ?? "")
-        let pnl = try? await PolymarketDataService.shared.fetchPnL(userId: polymarketAddress!)
+        let portfolioValue: Double? = try? await PolymarketDataService.shared.fetchPortfolio(
+            userId: polymarketAddress ?? ""
+        )
+        let pnlRaw = try? await PolymarketDataService.shared.fetchPnL(
+            userId: polymarketAddress!,
+            interval: .day
+        )
+        
+        // filter only records today
+        let pnl = pnlRaw?.filter { Calendar.current.isDateInToday($0.t) }
         
         let entry = SimpleEntry(
             date: Date(),
