@@ -15,7 +15,7 @@ struct EmptySidebarComponent: View {
             VStack(spacing: 8) {
                 Image(systemName: "wallet.bifold")
                 
-                Text("Connet your Polymarket wallet")
+                Text("Connect your Polymarket wallet")
                     .multilineTextAlignment(.center)
             }
             
