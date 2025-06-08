@@ -222,18 +222,14 @@ struct EventCard: View {
                     StatView(title: "Liquidity", value: formatNumber(event.liquidity ?? 0))
                     StatView(title: "Markets", value: "\(event.markets.count)")
                 }
-                
-                // Tags
-                if let tags = event.tags {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(tags, id: \.id) { tag in
-                                Tag(tag.label)
-                            }
-                        }
-                    }
-                }
             }
+            .padding(16)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(.secondary.opacity(0.3), lineWidth: 0.5)
+            )
         }
         .buttonStyle(PlainButtonStyle())
     }

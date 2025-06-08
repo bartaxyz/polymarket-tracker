@@ -47,12 +47,15 @@ struct MarketIndicator: View {
         let isBinary = outcomes.count == 2
         
         if isBinary {
-            // For binary markets, always show "Yes" percentage
-            if let yesIndex = outcomes.firstIndex(where: { $0.lowercased() == "yes" }) {
+            // For binary markets, check if it's Yes/No
+            let isYesNo = outcomes.contains(where: { $0.lowercased() == "yes" }) && 
+                         outcomes.contains(where: { $0.lowercased() == "no" })
+            
+            if isYesNo, let yesIndex = outcomes.firstIndex(where: { $0.lowercased() == "yes" }) {
                 let yesPercentage = prices[yesIndex]
-                return (true, true, yesPercentage, "Yes")
+                return (true, true, yesPercentage, "Chance")
             } else {
-                // Fallback to first option if no "Yes" found
+                // Show first option for non-Yes/No binary markets
                 return (true, true, prices[0], outcomes[0])
             }
         } else {
@@ -89,22 +92,23 @@ struct MarketIndicator: View {
         
         if data.shouldShow {
             VStack(spacing: 4) {
-                if data.isBinary, let percentage = data.percentage {
-                    // Binary market: show gauge for "Yes" probability
+                if data.isBinary, let percentage = data.percentage, let label = data.label {
+                    // Binary market: show gauge for first option probability
                     Gauge(value: percentage, in: 0...1) {
                         Image(systemName: "percent")
                     } currentValueLabel: {
                         Text(formatPercentage(percentage))
-                            .font(.body)
+                            .font(.title2)
                             .bold()
                     }
                     .gaugeStyle(.accessoryCircular)
                     .tint(gaugeColor)
                     .scaleEffect(0.8)
                     
-                    /*Text("Chance")
+                    Text(label)
                         .font(.caption2)
-                        .foregroundColor(.secondary)*/
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 } else if !data.isBinary, let percentage = data.percentage, let label = data.label {
                     // Multi-outcome market: show leading option
                     VStack(spacing: 2) {
