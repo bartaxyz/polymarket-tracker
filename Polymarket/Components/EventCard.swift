@@ -58,7 +58,6 @@ struct EventCard: View {
         NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
             cardContent
         }
-        .offset(y: isHovered ? -2 : 0)
         .animation(.easeInOut(duration: 0.2), value: isHovered)
         .buttonStyle(PlainButtonStyle())
         .onHover { hovering in

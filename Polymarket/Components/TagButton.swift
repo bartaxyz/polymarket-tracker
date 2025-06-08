@@ -10,20 +10,31 @@ import SwiftUI
 struct TagButton: View {
     let tag: PolymarketDataService.Tag
     let isSelected: Bool
+    let icon: String?
     let action: () -> Void
     
     @State private var isHovered = false
     
+    init(tag: PolymarketDataService.Tag, isSelected: Bool, icon: String? = nil, action: @escaping () -> Void) {
+        self.tag = tag
+        self.isSelected = isSelected
+        self.icon = icon
+        self.action = action
+    }
+    
     var body: some View {
         Button(action: action) {
-            Text(tag.label)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(backgroundColor)
-                .foregroundColor(foregroundColor)
-                .cornerRadius(8)
+            HStack(spacing: 6) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                }
+                Text(tag.label)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(backgroundColor)
+            .foregroundColor(foregroundColor)
+            .cornerRadius(8)
         }
         .buttonStyle(.plain)
         .shadow(
@@ -32,6 +43,8 @@ struct TagButton: View {
             x: 0,
             y: 4
         )
+        .animation(.easeInOut(duration: 0.1), value: isSelected)
+        .animation(.easeInOut(duration: 0.1), value: isHovered)
         .onHover { hovering in
             isHovered = hovering
         }

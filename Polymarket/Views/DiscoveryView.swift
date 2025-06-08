@@ -139,10 +139,9 @@ struct DiscoveryView: View {
                             .gridCellColumns(columns.count)
                         }
                     }
-                    .padding(.horizontal)
                 }
             }
-            .padding(.vertical)
+            .padding()
         }
     }
     

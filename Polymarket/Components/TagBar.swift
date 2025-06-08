@@ -27,6 +27,7 @@ struct TagBar: View {
                         updatedAt: nil
                     ),
                     isSelected: selectedTag == nil,
+                    icon: "safari",
                     action: {
                         selectedTag = nil
                         onTagSelected(nil)
