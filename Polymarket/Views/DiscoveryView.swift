@@ -58,16 +58,19 @@ struct DiscoveryView: View {
                             }
                         }
                         .padding(.horizontal)
+                        .padding(.vertical, 8)
                     }
+                    .scrollClipDisabled()
                     
                     if isLoading && events.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.vertical, 40)
                     } else {
-                        LazyVGrid(columns: columns, spacing: 16) {
+                        LazyVGrid(columns: columns, spacing: 20) {
                             ForEach(events, id: \.id) { event in
                                 EventCard(event: event)
+                                    .padding(.bottom, 8)
                             }
                             
                             if isLoadingMore {
@@ -175,95 +178,6 @@ struct DiscoveryView: View {
     }
 }
 
-struct EventCard: View {
-    let event: PolymarketDataService.GammaEvent
-    
-    var body: some View {
-        NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 12) {
-                    // Event Image
-                    if let imageUrl = event.image, let url = URL(string: imageUrl) {
-                        AsyncImage(url: url) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Color.gray.opacity(0.2)
-                        }
-                        .frame(width: 40, height: 40)
-                        .clipShape(Circle())
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        // Title
-                        Text(event.title)
-                            .font(.headline)
-                            .lineLimit(2)
-                        
-                        // Description
-                        if let description = event.description {
-                            Text(description)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    // Market Indicator
-                    MarketIndicator(event: event)
-                }
-                
-                // Stats
-                HStack(spacing: 16) {
-                    StatView(title: "Volume", value: formatNumber(event.volume ?? 0))
-                    StatView(title: "Liquidity", value: formatNumber(event.liquidity ?? 0))
-                    StatView(title: "Markets", value: "\(event.markets.count)")
-                }
-            }
-            .padding(16)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(.secondary.opacity(0.3), lineWidth: 0.5)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-    
-    private func formatNumber(_ number: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 1
-        
-        if number >= 1_000_000 {
-            return "\(formatter.string(from: NSNumber(value: number / 1_000_000)) ?? "")M"
-        } else if number >= 1_000 {
-            return "\(formatter.string(from: NSNumber(value: number / 1_000)) ?? "")K"
-        } else {
-            return formatter.string(from: NSNumber(value: number)) ?? "0"
-        }
-    }
-}
-
-struct StatView: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.medium)
-        }
-    }
-}
 
 
 #Preview {

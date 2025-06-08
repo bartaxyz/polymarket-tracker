@@ -30,92 +30,19 @@ struct HomeView: View {
     }
     
     var body: some View {
-        #if os(iOS)
-        GeometryReader { geometry in
-            let useTabView = geometry.size.width < 900 // Use tab view for iPhone and smaller iPads
-            
-            if useTabView {
-                TabView {
-                    // Portfolio Tab (Default)
-                    NavigationStack {
-                        PortfolioTabView(wallet: wallet)
-                    }
-                    .tabItem {
-                        Label("Portfolio", systemImage: "chart.pie")
-                    }
-                    
-                    // Discover Tab (with integrated search)
-                    DiscoveryWithSearchView()
-                    .tabItem {
-                        Label("Discover", systemImage: "sparkles")
-                    }
-                }
-            } else {
-                // iPad layout with sidebar
-                NavigationSplitView {
-                    List {
-                        if let userId = wallet?.polymarketAddress {
-                            PortfolioSidebarSectionView()
-                        }
-                        
-                        if wallet == nil {
-                            Section {
-                                VStack(spacing: 4) {
-                                    Image(systemName: "wallet.bifold")
-                                    Text("Connect Wallet")
-                                    Text("Connect your wallet to see your portfolio")
-                                        .lineLimit(nil)
-                                        .multilineTextAlignment(.center)
-                                        .opacity(0.5)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                
-                                NavigationLink(destination: ConnectWalletManuallyView()) {
-                                    Label("Connect Wallet", systemImage: "wallet.bifold")
-                                }
-                            } header: {
-                                Text("Portfolio")
-                            }
-                        }
-                        
-                        Section {
-                            NavigationLink(destination: DiscoveryWithSearchView()) {
-                                Label("Discover", systemImage: "sparkles")
-                            }
-                        } header: {
-                            Text("Explore")
-                        }
-                    }
-                    .toolbar {
-                        if let compressedPolymarketAddress = wallet?.compressedPolymarketAddress {
-                            ToolbarItem(placement: .automatic) {
-                                Menu {
-                                    Button("Connect a different wallet") {
-                                        connectWallet()
-                                    }
-                                    Button("Disconnect wallet") {
-                                        disconnectWallet()
-                                    }
-                                } label: {
-                                    Label(compressedPolymarketAddress, systemImage: "wallet.bifold")
-                                }
-                            }
-                        } else {
-                            ToolbarItem(placement: .automatic) {
-                                NavigationLink(destination: ConnectWalletManuallyView()) {
-                                    Label("Connect Wallet", systemImage: "wallet.bifold")
-                                }
-                            }
-                        }
-                    }
-                } detail: {
-                    DiscoveryWithSearchView()
-                }
-                .sheet(isPresented: $isConnectWalletPresented) {
-                    ConnectWalletManuallyView()
-                }
+#if os(iOS)
+        TabView {
+            NavigationStack {
+                PortfolioTabView(wallet: wallet)
             }
+            .tabItem {
+                Label("Portfolio", systemImage: "chart.pie")
+            }
+            
+            DiscoveryWithSearchView()
+                .tabItem {
+                    Label("Discover", systemImage: "sparkles")
+                }
         }
         .onChange(of: wallet) { _, wallet in
             if let address = wallet?.polymarketAddress {
@@ -127,7 +54,7 @@ struct HomeView: View {
                 dataService.setUser(address)
             }
         }
-        #else
+#else
         NavigationSplitView {
             List {
                 if let userId = wallet?.polymarketAddress {

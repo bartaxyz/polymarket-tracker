@@ -12,17 +12,42 @@ struct TagButton: View {
     let isSelected: Bool
     let action: () -> Void
     
+    @State private var isHovered = false
+    
     var body: some View {
         Button(action: action) {
             Text(tag.label)
                 .font(.subheadline)
                 .fontWeight(.medium)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(isSelected ? .accent : Color.gray.opacity(0.1))
-                .foregroundColor(isSelected ? .white : .primary)
-                .cornerRadius(20)
+                .background(backgroundColor)
+                .foregroundColor(foregroundColor)
+                .cornerRadius(8)
         }
         .buttonStyle(.plain)
+        .shadow(
+            color: isSelected ? .accent : .clear,
+            radius: isSelected ? 16 : 0,
+            x: 0,
+            y: 4
+        )
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return .accent
+        } else if isHovered {
+            return .secondary.opacity(0.2)
+        } else {
+            return .secondary.opacity(0.1)
+        }
+    }
+    
+    private var foregroundColor: Color {
+        return isSelected ? .white : .primary
     }
 }

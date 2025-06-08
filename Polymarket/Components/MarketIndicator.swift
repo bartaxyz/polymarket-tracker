@@ -88,20 +88,25 @@ struct MarketIndicator: View {
             VStack {
                 if data.isBinary, let percentage = data.percentage, let label = data.label {
                     // Binary market: show gauge for first option probability
-                    Gauge(value: percentage, in: 0...1) {
-                        Image(systemName: "percent")
-                    } currentValueLabel: {
-                        Text(formatPercentage(percentage))
-                            .bold()
+                    VStack(spacing: -8) {
+                        Gauge(value: percentage, in: 0...1) {
+                            Image(systemName: "percent")
+                        } currentValueLabel: {
+                            Text(formatPercentage(percentage))
+                                .font(.system(size: 16))
+                                .bold()
+                        }
+                        .gaugeStyle(.accessoryCircular)
+                        .tint(gaugeColor)
+                        .scaleEffect(0.8)
+                        
+                        if label != "Chance" {
+                            Text(label)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
-                    .gaugeStyle(.accessoryCircular)
-                    .tint(gaugeColor)
-                    .scaleEffect(0.8)
-                    
-                    Text(label)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
                 } else if !data.isBinary, let percentage = data.percentage, let label = data.label {
                     // Multi-outcome market: show leading option
                     VStack(spacing: 2) {
