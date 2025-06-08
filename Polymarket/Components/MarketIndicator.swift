@@ -69,9 +69,9 @@ struct MarketIndicator: View {
     
     private var gaugeColor: Color {
         guard let percentage = marketData.percentage else { return .gray }
-        if percentage < 0.3 { return .red }
+        if percentage < 0.3 { return .negative }
         else if percentage < 0.7 { return .orange }
-        else { return .green }
+        else { return .positive }
     }
     
     private func formatPercentage(_ percentage: Double) -> String {

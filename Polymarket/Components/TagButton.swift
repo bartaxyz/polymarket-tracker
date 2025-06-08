@@ -27,8 +27,8 @@ struct TagButton: View {
         }
         .buttonStyle(.plain)
         .shadow(
-            color: isSelected ? .accent : .clear,
-            radius: isSelected ? 16 : 0,
+            color: isSelected ? .accent.opacity(0.2) : .clear,
+            radius: isSelected ? 8 : 0,
             x: 0,
             y: 4
         )

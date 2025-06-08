@@ -16,6 +16,8 @@ struct DiscoveryView: View {
     @State private var isLoadingMore = false
     @State private var hasMoreEvents = false
     @State private var currentOffset = 0
+    @State private var searchQuery = ""
+    @ObservedObject private var dataService = PolymarketDataService.shared
     private let pageSize = 20
     
     private let columns = [
@@ -23,92 +25,124 @@ struct DiscoveryView: View {
     ]
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            // All tag
-                            TagButton(
-                                tag: PolymarketDataService.Tag(
-                                    id: "all",
-                                    label: "All",
-                                    slug: "all",
-                                    forceShow: nil,
-                                    forceHide: nil,
-                                    createdAt: nil,
-                                    updatedAt: nil
-                                ),
-                                isSelected: selectedTag == nil,
-                                action: {
-                                    selectedTag = nil
-                                    loadEvents()
-                                }
-                            )
-                            
-                            ForEach(tags, id: \.id) { tag in
-                                TagButton(
-                                    tag: tag,
-                                    isSelected: selectedTag == tag.slug,
-                                    action: {
-                                        selectedTag = tag.slug
-                                        loadEvents(withTagSlug: tag.slug)
-                                    }
-                                )
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
-                    }
-                    .scrollClipDisabled()
-                    
-                    if isLoading && events.isEmpty {
-                        ProgressView()
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.vertical, 40)
-                    } else {
-                        LazyVGrid(columns: columns, spacing: 20) {
-                            ForEach(events, id: \.id) { event in
-                                EventCard(event: event)
-                                    .padding(.bottom, 8)
-                            }
-                            
-                            if isLoadingMore {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .gridCellColumns(columns.count)
-                            } else if hasMoreEvents {
-                                Button(action: {
-                                    loadMoreEvents()
-                                }) {
-                                    Text("Load More")
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(Color.blue.opacity(0.1))
-                                        .cornerRadius(10)
-                                }
-                                .gridCellColumns(columns.count)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-                .padding(.vertical)
-            }
-            .navigationTitle("Discover")
-            .task {
-                if tags.isEmpty {
-                    await loadTags()
-                }
-                if events.isEmpty {
-                    loadEvents(withTagSlug: selectedTag)
+        Group {
+            NavigationStack {
+                if !searchQuery.isEmpty {
+                    searchResultsView
+                } else {
+                    discoveryContentView
                 }
             }
-            .refreshable {
+        }
+        .navigationTitle(searchQuery.isEmpty ? "Discover" : "Search Results")
+        .searchable(text: $searchQuery, prompt: "Search markets...")
+        .onSubmit(of: .search) {
+            if !searchQuery.isEmpty {
+                Task {
+                    await dataService.searchEvents(query: searchQuery)
+                }
+            }
+        }
+        .onChange(of: searchQuery) { _, newValue in
+            if newValue.isEmpty {
+                dataService.clearSearchResults()
+            } else {
+                Task {
+                    await dataService.searchEvents(query: newValue)
+                }
+            }
+        }
+        .task {
+            if tags.isEmpty {
                 await loadTags()
+            }
+            if events.isEmpty {
                 loadEvents(withTagSlug: selectedTag)
             }
+        }
+        .refreshable {
+            await loadTags()
+            loadEvents(withTagSlug: selectedTag)
+        }
+    }
+    
+    private var searchResultsView: some View {
+        Group {
+            if dataService.isSearching {
+                ProgressView("Searching...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if dataService.searchResults.isEmpty {
+                ContentUnavailableView(
+                    "No Results",
+                    systemImage: "magnifyingglass",
+                    description: Text("Try a different search term")
+                )
+            } else {
+                List {
+                    ForEach(dataService.searchResults, id: \.id) { event in
+                        NavigationLink(destination: MarketDetailView(market: .event(event))) {
+                            SearchResultRowView(event: event)
+                        }
+                    }
+                    
+                    if dataService.hasMoreSearchResults {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .onAppear {
+                                Task {
+                                    await dataService.loadMoreSearchResults()
+                                }
+                            }
+                    }
+                }
+            }
+        }
+    }
+    
+    private var discoveryContentView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                TagBar(
+                    tags: tags,
+                    selectedTag: $selectedTag,
+                    onTagSelected: { tagSlug in
+                        loadEvents(withTagSlug: tagSlug)
+                    }
+                )
+                
+                if isLoading && events.isEmpty {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.vertical, 40)
+                } else {
+                    LazyVGrid(columns: columns) {
+                        ForEach(events, id: \.id) { event in
+                            EventCard(event: event)
+                                .padding(.bottom, 8)
+                        }
+                        
+                        if isLoadingMore {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .gridCellColumns(columns.count)
+                        } else if hasMoreEvents {
+                            Button(action: {
+                                loadMoreEvents()
+                            }) {
+                                Text("Load More")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(10)
+                            }
+                            .gridCellColumns(columns.count)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            .padding(.vertical)
         }
     }
     
@@ -179,6 +213,44 @@ struct DiscoveryView: View {
 }
 
 
+
+struct SearchResultRowView: View {
+    let event: PolymarketDataService.Event
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            if let imageUrl = event.imageUrl,
+               let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 40, height: 40)
+                .cornerRadius(8)
+            } else {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 40, height: 40)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .lineLimit(2)
+                    .font(.subheadline)
+                
+                if let volume = event.volume {
+                    Text("Volume: $\(String(format: "%.2f", volume))")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
 
 #Preview {
     DiscoveryView()

@@ -52,8 +52,8 @@ struct PortfolioSidebarSectionView: View {
                                 }
                             }
                         } icon: {
-                            Image(systemName: "smallcircle.filled.circle")
-                            // Image(systemName: position.cashPnl >= 0 ? "arrow.up" : "arrow.down")
+                            // Image(systemName: "smallcircle.filled.circle")
+                            Image(systemName: position.cashPnl >= 0 ? "arrow.up" : "arrow.down")
                         }
                     }
                 }
