@@ -23,6 +23,7 @@ struct HomeView: View {
     @State private var selectedPositionId: String?
     @State private var searchQuery: String = ""
     @State private var isSearchPresented: Bool = false
+    @State private var isRefreshing: Bool = false
     
     var selectedPosition: PolymarketDataService.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
@@ -85,6 +86,22 @@ struct HomeView: View {
                 ToolbarItem {
                     Spacer()
                 }
+                
+    #if os(macOS)
+                ToolbarItem(placement: .automatic) {
+                    Button(action: {
+                        Task {
+                            isRefreshing = true
+                            await refreshData()
+                            isRefreshing = false
+                        }
+                    }) {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                            .symbolEffect(.rotate, isActive: isRefreshing)
+                    }
+                    .disabled(isRefreshing)
+                }
+    #endif
             
                 if let compressedPolymarketAddress = wallet?.compressedPolymarketAddress {
                     ToolbarItem(placement: placement) {

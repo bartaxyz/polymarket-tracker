@@ -150,17 +150,6 @@ struct PositionDetailView: View {
         .listStyle(.insetGrouped)
         #else
         .listStyle(.inset)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Button(action: {
-                    Task {
-                        await dataService.refreshAllData()
-                    }
-                }) {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-        }
         #endif
     }
 }
