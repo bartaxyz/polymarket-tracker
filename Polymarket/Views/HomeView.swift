@@ -31,19 +31,90 @@ struct HomeView: View {
     
     var body: some View {
         #if os(iOS)
-        TabView {
-            // Portfolio Tab (Default)
-            NavigationStack {
-                PortfolioTabView(wallet: wallet)
-            }
-            .tabItem {
-                Label("Portfolio", systemImage: "chart.pie")
-            }
+        GeometryReader { geometry in
+            let useTabView = geometry.size.width < 900 // Use tab view for iPhone and smaller iPads
             
-            // Discover Tab (with integrated search)
-            DiscoveryWithSearchView()
-            .tabItem {
-                Label("Discover", systemImage: "sparkles")
+            if useTabView {
+                TabView {
+                    // Portfolio Tab (Default)
+                    NavigationStack {
+                        PortfolioTabView(wallet: wallet)
+                    }
+                    .tabItem {
+                        Label("Portfolio", systemImage: "chart.pie")
+                    }
+                    
+                    // Discover Tab (with integrated search)
+                    DiscoveryWithSearchView()
+                    .tabItem {
+                        Label("Discover", systemImage: "sparkles")
+                    }
+                }
+            } else {
+                // iPad layout with sidebar
+                NavigationSplitView {
+                    List {
+                        if let userId = wallet?.polymarketAddress {
+                            PortfolioSidebarSectionView()
+                        }
+                        
+                        if wallet == nil {
+                            Section {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "wallet.bifold")
+                                    Text("Connect Wallet")
+                                    Text("Connect your wallet to see your portfolio")
+                                        .lineLimit(nil)
+                                        .multilineTextAlignment(.center)
+                                        .opacity(0.5)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                
+                                NavigationLink(destination: ConnectWalletManuallyView()) {
+                                    Label("Connect Wallet", systemImage: "wallet.bifold")
+                                }
+                            } header: {
+                                Text("Portfolio")
+                            }
+                        }
+                        
+                        Section {
+                            NavigationLink(destination: DiscoveryWithSearchView()) {
+                                Label("Discover", systemImage: "sparkles")
+                            }
+                        } header: {
+                            Text("Explore")
+                        }
+                    }
+                    .toolbar {
+                        if let compressedPolymarketAddress = wallet?.compressedPolymarketAddress {
+                            ToolbarItem(placement: .automatic) {
+                                Menu {
+                                    Button("Connect a different wallet") {
+                                        connectWallet()
+                                    }
+                                    Button("Disconnect wallet") {
+                                        disconnectWallet()
+                                    }
+                                } label: {
+                                    Label(compressedPolymarketAddress, systemImage: "wallet.bifold")
+                                }
+                            }
+                        } else {
+                            ToolbarItem(placement: .automatic) {
+                                NavigationLink(destination: ConnectWalletManuallyView()) {
+                                    Label("Connect Wallet", systemImage: "wallet.bifold")
+                                }
+                            }
+                        }
+                    }
+                } detail: {
+                    DiscoveryWithSearchView()
+                }
+                .sheet(isPresented: $isConnectWalletPresented) {
+                    ConnectWalletManuallyView()
+                }
             }
         }
         .onChange(of: wallet) { _, wallet in
@@ -210,61 +281,92 @@ struct PortfolioTabView: View {
     @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var isConnectWalletPresented = false
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                if let userId = wallet?.polymarketAddress {
-                    PortfolioView(
-                        showHeader: true,
-                        showPicker: true
-                    )
-                    .frame(height: 200)
+        GeometryReader { geometry in
+            ScrollView {
+                HStack(spacing: 0) {
+                    // Center content on larger screens
+                    if geometry.size.width > 800 {
+                        Spacer()
+                    }
                     
-                    if let positions = dataService.positions, !positions.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Positions")
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                Spacer()
-                            }
+                    VStack(spacing: 20) {
+                        if let userId = wallet?.polymarketAddress {
+                            PortfolioView(
+                                showHeader: true,
+                                showPicker: true
+                            )
+                            .frame(height: geometry.size.width > 800 ? 250 : 200)
                             
-                            LazyVStack(spacing: 8) {
-                                ForEach(positions, id: \.conditionId) { position in
-                                    NavigationLink(destination: PositionDetailView(position: position)) {
-                                        PositionRowView(position: position)
+                            if let positions = dataService.positions, !positions.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Text("Positions")
+                                            .font(.title2)
+                                            .fontWeight(.bold)
+                                        Spacer()
                                     }
-                                    .buttonStyle(.plain)
+                                    
+                                    if geometry.size.width > 800 {
+                                        // Grid layout for larger screens
+                                        LazyVGrid(columns: [
+                                            GridItem(.flexible()),
+                                            GridItem(.flexible())
+                                        ], spacing: 12) {
+                                            ForEach(positions, id: \.conditionId) { position in
+                                                NavigationLink(destination: PositionDetailView(position: position)) {
+                                                    PositionRowView(position: position)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                    } else {
+                                        // List layout for smaller screens
+                                        LazyVStack(spacing: 8) {
+                                            ForEach(positions, id: \.conditionId) { position in
+                                                NavigationLink(destination: PositionDetailView(position: position)) {
+                                                    PositionRowView(position: position)
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                    }
                                 }
                             }
+                        } else {
+                            VStack(spacing: 20) {
+                                Image(systemName: "wallet.bifold")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(.secondary)
+                                
+                                VStack(spacing: 8) {
+                                    Text("Connect Your Wallet")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                    Text("Connect your wallet to view your portfolio and track your positions")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .multilineTextAlignment(.center)
+                                }
+                                
+                                Button("Connect Wallet") {
+                                    isConnectWalletPresented = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                            .padding(.top, 60)
                         }
                     }
-                } else {
-                    VStack(spacing: 20) {
-                        Image(systemName: "wallet.bifold")
-                            .font(.system(size: 60))
-                            .foregroundColor(.secondary)
-                        
-                        VStack(spacing: 8) {
-                            Text("Connect Your Wallet")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                            Text("Connect your wallet to view your portfolio and track your positions")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        
-                        Button("Connect Wallet") {
-                            isConnectWalletPresented = true
-                        }
-                        .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: geometry.size.width > 800 ? 700 : .infinity)
+                    .padding()
+                    
+                    if geometry.size.width > 800 {
+                        Spacer()
                     }
-                    .padding(.top, 60)
                 }
             }
-            .padding()
         }
         .navigationTitle("Portfolio")
         .refreshable {
@@ -273,7 +375,7 @@ struct PortfolioTabView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem() {
                 if let compressedAddress = wallet?.compressedPolymarketAddress {
                     Menu {
                         Button("Connect Different Wallet") {
@@ -568,9 +670,7 @@ struct PositionRowView: View {
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 12)
-        .background(Color(.systemBackground))
         .cornerRadius(8)
-        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
 }
 
