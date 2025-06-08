@@ -40,20 +40,15 @@ struct PortfolioSidebarSectionView: View {
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    CurrencyText(
-                                        amount: position.cashPnl,
-                                        signature: .always,
-                                        isDelta: true
-                                    )
-                                    .fontWeight(.semibold)
-                                    .font(.caption)
+                                    CurrencyText(amount: position.currentValue)
+
                                     PercentageText(
                                         amount: position.percentPnl / 100,
                                         signature: .never,
-                                        hasArrow: true
+                                        isDelta: true,
+                                        hasArrow: true,
                                     )
                                     .font(.caption)
-                                    .opacity(0.5)
                                 }
                             }
                         } icon: {
