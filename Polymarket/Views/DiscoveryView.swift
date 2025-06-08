@@ -175,27 +175,43 @@ struct DiscoveryView: View {
     }
 }
 
-struct TagButton: View {
-    let tag: PolymarketDataService.Tag
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(tag.label)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(isSelected ? Color.blue : Color.gray.opacity(0.1))
-                .foregroundColor(isSelected ? .white : .primary)
-                .cornerRadius(20)
-        }
-    }
-}
-
 struct EventCard: View {
     let event: PolymarketDataService.GammaEvent
+    
+    private var primaryMarketChance: Double? {
+        // Check if we have any markets
+        guard !event.markets.isEmpty else {
+            print("No markets for event: \(event.title)")
+            return nil
+        }
+        
+        let firstMarket = event.markets.first!
+        print("Market question: \(firstMarket.question)")
+        print("Outcome prices string: \(firstMarket.outcomePrices ?? "nil")")
+        
+        guard let outcomePricesString = firstMarket.outcomePrices,
+              !outcomePricesString.isEmpty else {
+            print("No outcome prices for market: \(firstMarket.question)")
+            return nil
+        }
+        
+        guard let data = outcomePricesString.data(using: .utf8),
+              let prices = try? JSONDecoder().decode([Double].self, from: data),
+              let firstPrice = prices.first else {
+            print("Failed to parse outcome prices: \(outcomePricesString)")
+            return nil
+        }
+        
+        print("Parsed price: \(firstPrice)")
+        return firstPrice
+    }
+    
+    private var gaugeColor: Color {
+        guard let chance = primaryMarketChance else { return .gray }
+        if chance < 0.3 { return .red }
+        else if chance < 0.7 { return .orange }
+        else { return .green }
+    }
     
     var body: some View {
         NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
@@ -228,6 +244,44 @@ struct EventCard: View {
                                 .lineLimit(2)
                         }
                     }
+                    
+                    Spacer()
+                    
+                    // Chance Gauge
+                    VStack(spacing: 4) {
+                        if let chance = primaryMarketChance {
+                            Gauge(value: chance, in: 0...1) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                            } currentValueLabel: {
+                                Text((chance * 100).formatted(.number.precision(.fractionLength(0))) + "%")
+                                    .font(.caption2)
+                                    .bold()
+                            }
+                            .gaugeStyle(.accessoryCircularCapacity)
+                            .tint(gaugeColor)
+                            .frame(width: 60, height: 60)
+                            
+                            Text("Chance")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        } else {
+                            // Fallback: show a test gauge or placeholder
+                            Gauge(value: 0.5, in: 0...1) {
+                                Image(systemName: "questionmark")
+                            } currentValueLabel: {
+                                Text("--")
+                                    .font(.caption2)
+                                    .bold()
+                            }
+                            .gaugeStyle(.accessoryCircularCapacity)
+                            .tint(.gray)
+                            .frame(width: 60, height: 60)
+                            
+                            Text("No Data")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 
                 // Stats
@@ -242,21 +296,12 @@ struct EventCard: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(tags, id: \.id) { tag in
-                                Text(tag.label)
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(Color.blue.opacity(0.1))
-                                    .foregroundColor(.blue)
-                                    .cornerRadius(8)
+                                Tag(tag.label)
                             }
                         }
                     }
                 }
             }
-            .padding(12)
-            .cornerRadius(12)
-            .shadow(radius: 2)
         }
         .buttonStyle(PlainButtonStyle())
     }

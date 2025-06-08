@@ -22,6 +22,7 @@ struct HomeView: View {
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var searchQuery: String = ""
+    @State private var isSearchPresented: Bool = false
     
     var selectedPosition: PolymarketDataService.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
@@ -30,22 +31,6 @@ struct HomeView: View {
     var body: some View {
         NavigationSplitView {
             List {
-                if !dataService.searchResults.isEmpty {
-                    SearchResultsSection(
-                        results: dataService.searchResults,
-                        hasMore: dataService.hasMoreSearchResults,
-                        selectedId: selectedPositionId,
-                        onSelect: { id in
-                            selectedPositionId = id
-                        },
-                        onLoadMore: {
-                            Task {
-                                await dataService.loadMoreSearchResults()
-                            }
-                        }
-                    )
-                }
-                
                 if let userId = wallet?.polymarketAddress {
                     PortfolioSidebarSectionView()
                 }
@@ -71,17 +56,20 @@ struct HomeView: View {
                     }
                 }
                 
-                DiscoverSection()
+                Section {
+                    NavigationLink(destination: DiscoveryView()) {
+                        Label("Discover", systemImage: "sparkles")
+                    }
+                } header: {
+                    Text("Explore")
+                }
             }
             .searchable(text: $searchQuery, prompt: "Search markets...")
             .onSubmit(of: .search) {
-                Task {
-                    await dataService.searchEvents(query: searchQuery)
-                }
-            }
-            .onChange(of: searchQuery) { _, newQuery in
-                if newQuery.isEmpty {
+                if !searchQuery.isEmpty {
+                    // Clear previous search results before showing search view
                     dataService.clearSearchResults()
+                    isSearchPresented = true
                 }
             }
             .refreshable {
@@ -120,7 +108,22 @@ struct HomeView: View {
                 }
             }
         } detail: {
-            DiscoveryView()
+            ZStack {
+                DiscoveryView()
+                
+                NavigationLink(
+                    destination: SearchView(initialQuery: searchQuery),
+                    isActive: $isSearchPresented,
+                    label: { EmptyView() }
+                )
+                .onChange(of: isSearchPresented) { _, isActive in
+                    // Reset search query when returning from search view
+                    if !isActive {
+                        searchQuery = ""
+                    }
+                }
+                .hidden()
+            }
         }
         .sheet(isPresented: $isConnectWalletPresented) {
             ConnectWalletManuallyView()
@@ -155,95 +158,6 @@ struct HomeView: View {
     }
 }
 
-private struct SearchResultsSection: View {
-    let results: [PolymarketDataService.Event]
-    let hasMore: Bool
-    let selectedId: String?
-    let onSelect: (String) -> Void
-    let onLoadMore: () -> Void
-    
-    var body: some View {
-        Section("Search Results") {
-            ForEach(results, id: \.id) { event in
-                EventRowView(event: event, isSelected: selectedId == event.id)
-                    .onTapGesture {
-                        onSelect(event.id)
-                    }
-            }
-            
-            if hasMore {
-                ProgressView()
-                    .frame(maxWidth: .infinity)
-                    .onAppear(perform: onLoadMore)
-            }
-        }
-    }
-}
-
-private struct DiscoverSection: View {
-    var body: some View {
-        Section {
-            NavigationLink(destination: DiscoveryView()) {
-                Label("Discover", systemImage: "sparkles")
-            }
-            /*
-             NavigationLink(destination: Text("New")) {
-                Label("New", systemImage: "sparkles")
-            }
-            NavigationLink(destination: Text("Politics")) {
-                Label("Politics", systemImage: "building.columns")
-            }
-            NavigationLink(destination: Text("Sports")) {
-                Label("Sports", systemImage: "soccerball")
-            }
-            NavigationLink(destination: Text("Crypto")) {
-                Label("Crypto", systemImage: "bitcoinsign")
-            }*/
-        } header: {
-            Text("Discover")
-        }
-    }
-}
-
-private struct EventRowView: View {
-    let event: PolymarketDataService.Event
-    let isSelected: Bool
-    
-    var body: some View {
-        NavigationLink(destination: MarketDetailView(market: .event(event))) {
-            HStack(spacing: 12) {
-                if let imageUrl = event.imageUrl,
-                let url = URL(string: imageUrl) {
-                    AsyncImage(url: url) { image in
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    } placeholder: {
-                        Color.gray.opacity(0.2)
-                    }
-                    .frame(width: 40, height: 40)
-                    .cornerRadius(8)
-                } else {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(width: 40, height: 40)
-                }
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(event.title)
-                        .lineLimit(2)
-                        .font(.subheadline)
-                    
-                    if let volume = event.volume {
-                        Text("Volume: $\(String(format: "%.2f", volume))")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                }
-            }
-        }
-    }
-}
 
 #Preview {
     HomeView(wallet: WalletConnectModel(

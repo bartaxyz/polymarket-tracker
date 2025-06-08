@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PositionDetailView: View {
     var position: PolymarketDataService.Position
+    @ObservedObject private var dataService = PolymarketDataService.shared
     
     var body: some View {
         List {
@@ -129,12 +130,37 @@ struct PositionDetailView: View {
                         .bold()
                 }
             }
+            
+            // Web Link
+            Section {
+                Link(destination: URL(string: "https://polymarket.com/event/\(position.slug)")!) {
+                    HStack {
+                        Image(systemName: "globe")
+                        Text("View on Polymarket.com")
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                }
+            }
         }
         .navigationTitle("Position Details")
         #if os(iOS)
         .listStyle(.insetGrouped)
         #else
         .listStyle(.inset)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button(action: {
+                    Task {
+                        await dataService.refreshAllData()
+                    }
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+        }
         #endif
     }
 }

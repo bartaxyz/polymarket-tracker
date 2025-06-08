@@ -27,32 +27,38 @@ struct PortfolioSidebarSectionView: View {
                     NavigationLink(
                         destination: PositionDetailView(position: position)
                     ) {
-                        VStack(alignment: .leading) {
-                            Text(position.title)
-                                .lineLimit(3)
-                                .font(.callout)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text(position.outcome)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        VStack(alignment: .trailing, spacing: 2) {
-                            CurrencyText(
-                                amount: position.cashPnl,
-                                signature: .always,
-                                isDelta: true,
-                                // hasBackground: true
-                            )
-                            .fontWeight(.semibold)
-                            .font(.caption)
-                            PercentageText(
-                                amount: position.percentPnl / 100,
-                                signature: .never,
-                                hasArrow: true
-                            )
-                            .font(.caption)
-                            .opacity(0.5)
+                        Label {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(position.title)
+                                        .lineLimit(2)
+                                        .font(.callout)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Text(position.outcome)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    CurrencyText(
+                                        amount: position.cashPnl,
+                                        signature: .always,
+                                        isDelta: true
+                                    )
+                                    .fontWeight(.semibold)
+                                    .font(.caption)
+                                    PercentageText(
+                                        amount: position.percentPnl / 100,
+                                        signature: .never,
+                                        hasArrow: true
+                                    )
+                                    .font(.caption)
+                                    .opacity(0.5)
+                                }
+                            }
+                        } icon: {
+                            Image(systemName: "smallcircle.filled.circle")
+                            // Image(systemName: position.cashPnl >= 0 ? "arrow.up" : "arrow.down")
                         }
                     }
                 }
@@ -65,6 +71,6 @@ struct PortfolioSidebarSectionView: View {
 
 #Preview {
     PortfolioSidebarSectionView()
-    .frame(width: 320)
+        .frame(width: 320, height: 480)
     .padding()
 }

@@ -65,6 +65,8 @@
 				Components/CurrencyText.swift,
 				Components/PercentageText.swift,
 				Components/ProfitLossChart.swift,
+				Components/Tag.swift,
+				Components/TagButton.swift,
 				Models/WalletConnectModel.swift,
 				Services/PolymarketDataService.swift,
 				SharedModelContainer.swift,
