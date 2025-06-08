@@ -78,27 +78,20 @@ struct MarketIndicator: View {
         let percent = percentage * 100
         let rounded = percent.rounded()
         
-        if rounded <= 0 {
-            return ">1"
-        } else if rounded >= 100 {
-            return ">99"
-        } else {
-            return "\(Int(rounded))"
-        }
+        return "\(Int(rounded))"
     }
     
     var body: some View {
         let data = marketData
         
         if data.shouldShow {
-            VStack(spacing: 4) {
+            VStack {
                 if data.isBinary, let percentage = data.percentage, let label = data.label {
                     // Binary market: show gauge for first option probability
                     Gauge(value: percentage, in: 0...1) {
                         Image(systemName: "percent")
                     } currentValueLabel: {
                         Text(formatPercentage(percentage))
-                            .font(.title2)
                             .bold()
                     }
                     .gaugeStyle(.accessoryCircular)
