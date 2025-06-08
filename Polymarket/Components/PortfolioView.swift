@@ -20,6 +20,7 @@ struct PortfolioView: View {
     @State private var range: PolymarketDataService.PnLRange = .today
     @State private var isLoading: Bool = false
     @State private var lastUpdated: Date = Date()
+    @State private var viewSize: CGSize = .zero
 
     var isToday: Bool { range == .today }
     var todayStart: Date {
@@ -62,11 +63,12 @@ struct PortfolioView: View {
     }
 
     var chartId: String {
-        return "\(lastUpdated.timeIntervalSince1970)"
+        return "\(lastUpdated.timeIntervalSince1970)-\(viewSize.width)-\(viewSize.height)"
     }
     
     var body: some View {
-        VStack(spacing: 16) {
+        GeometryReader { geometry in
+            VStack(spacing: 16) {
             if showHeader {
                 HStack {
                     CurrencyText(
@@ -112,6 +114,13 @@ struct PortfolioView: View {
             )
             .id(chartId)
             .opacity(isLoading ? 0.3 : 1.0)
+            }
+            .onAppear {
+                viewSize = geometry.size
+            }
+            .onChange(of: geometry.size) { oldSize, newSize in
+                viewSize = newSize
+            }
         }
         .onChange(of: range) { oldValue, newValue in
             Task { await fetchData() }
