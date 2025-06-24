@@ -101,22 +101,6 @@ struct HomeView: View {
                 ToolbarItem {
                     Spacer()
                 }
-                
-    #if os(macOS)
-                ToolbarItem(placement: .automatic) {
-                    Button(action: {
-                        Task {
-                            isRefreshing = true
-                            await refreshData()
-                            isRefreshing = false
-                        }
-                    }) {
-                        Label("Refresh", systemImage: "arrow.clockwise")
-                            .symbolEffect(.rotate, isActive: isRefreshing)
-                    }
-                    .disabled(isRefreshing)
-                }
-    #endif
             
                 if let compressedPolymarketAddress = wallet?.compressedPolymarketAddress {
                     ToolbarItem(placement: placement) {
@@ -354,3 +338,4 @@ struct PositionRowView: View {
         polymarketAddress: "0x235A480a9CCB7aDA0Ad2DC11dAC3a11FB433Febd"
     ))
 }
+
