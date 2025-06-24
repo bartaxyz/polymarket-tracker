@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct MarketIndicator: View {
-    let event: PolymarketDataService.GammaEvent
+    let event: PolymarketModels.GammaEvent
     
     private var marketData: (shouldShow: Bool, isBinary: Bool, percentage: Double?, label: String?) {
         // Check if we have exactly one market (hide for multiple markets)

@@ -72,7 +72,7 @@ struct SimpleEntry: TimelineEntry {
     let date: Date
     let polymarketAddress: String?
     let portfolioValue: Double?
-    let pnl: [PolymarketDataService.PnLDataPoint]?
+    let pnl: [PolymarketModels.PnLDataPoint]?
     let configuration: ConfigurationAppIntent
 }
 
@@ -99,12 +99,12 @@ struct PortfolioEntryView : View {
 #endif
         
         // Normalize PnL: subtract the last PnL point, then add the portfolio value
-        let data: [PolymarketDataService.PnLDataPoint] = {
+        let data: [PolymarketModels.PnLDataPoint] = {
             let raw = entry.pnl ?? []
             let lastP = raw.last?.p ?? 0.0
             let base  = entry.portfolioValue ?? 0.0
             return raw.map { point in
-                PolymarketDataService.PnLDataPoint(
+                PolymarketModels.PnLDataPoint(
                     t: point.t,
                     p: point.p - lastP + base
                 )
@@ -120,7 +120,7 @@ struct PortfolioEntryView : View {
             }
             ProfitLossChart(
                 data: data,
-                range: .today,
+                range: PolymarketModels.PnLRange.today,
                 hideXAxis: true,
                 hideYAxis: true,
             )
@@ -136,7 +136,7 @@ struct PortfolioEntryView : View {
                 }
                 ProfitLossChart(
                     data: data,
-                    range: .today,
+                    range: PolymarketModels.PnLRange.today,
                     hideXAxis: true,
                     hideYAxis: true,
                 )
@@ -166,7 +166,7 @@ struct PortfolioEntryView : View {
             }
             ProfitLossChart(
                 data: data,
-                range: .today
+                range: PolymarketModels.PnLRange.today
             )
         }
     }

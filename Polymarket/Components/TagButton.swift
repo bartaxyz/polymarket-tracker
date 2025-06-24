@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct TagButton: View {
-    let tag: PolymarketDataService.Tag
+    let tag: PolymarketModels.Tag
     let isSelected: Bool
     let icon: String?
     let action: () -> Void
     
     @State private var isHovered = false
     
-    init(tag: PolymarketDataService.Tag, isSelected: Bool, icon: String? = nil, action: @escaping () -> Void) {
+    init(tag: PolymarketModels.Tag, isSelected: Bool, icon: String? = nil, action: @escaping () -> Void) {
         self.tag = tag
         self.isSelected = isSelected
         self.icon = icon

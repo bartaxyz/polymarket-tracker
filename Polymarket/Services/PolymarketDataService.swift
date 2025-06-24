@@ -8,21 +8,25 @@
 import Foundation
 import Combine
 
+
 @MainActor
 class PolymarketDataService: ObservableObject {
     static let shared = PolymarketDataService()
     
-    private let session = URLSession.shared
+    // New architecture services
+    private let portfolioRepository: PortfolioRepositoryProtocol
+    private let eventRepository: EventRepositoryProtocol
+    private let pnlRepository: PnLRepositoryProtocol
     
     // Published properties for observable state
     @Published private(set) var portfolioValue: Double?
-    @Published private(set) var positions: [Position]?
+    @Published private(set) var positions: [PolymarketModels.Position]?
     @Published private(set) var cashBalance: Double?
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var error: Error?
     
     // Search state
-    @Published private(set) var searchResults: [GammaEvent] = []
+    @Published private(set) var searchResults: [PolymarketModels.GammaEvent] = []
     @Published private(set) var hasMoreSearchResults: Bool = false
     @Published private(set) var isSearching: Bool = false
     
@@ -30,37 +34,28 @@ class PolymarketDataService: ObservableObject {
     private var searchPage: Int = 1
     private var searchQuery: String = ""
     
-    private init() {}
+    nonisolated private init(portfolioRepository: PortfolioRepositoryProtocol = PortfolioRepository(),
+                             eventRepository: EventRepositoryProtocol = EventRepository(),
+                             pnlRepository: PnLRepositoryProtocol = PnLRepository()) {
+        self.portfolioRepository = portfolioRepository
+        self.eventRepository = eventRepository
+        self.pnlRepository = pnlRepository
+    }
     
-    // Helper method to make HTTP requests without caching
+    // MARK: - Legacy HTTP method kept for any remaining direct usage
     private func makeRequest(
         url: URL,
         method: String = "GET",
         headers: [String: String] = [:],
         body: Data? = nil
     ) async throws -> Data {
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.httpBody = body
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        for (key, value) in headers {
-            request.addValue(value, forHTTPHeaderField: key)
-        }
-        
-        do {
-            let (data, response) = try await session.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
-            return data
-        } catch {
-            // Handle task cancellation gracefully
-            if let urlError = error as? URLError, urlError.code == .cancelled {
-                print("Request cancelled: \(url.absoluteString)")
-            }
-            throw error
-        }
+        let apiClient = APIClient()
+        return try await apiClient.requestData(
+            url: url,
+            method: HTTPMethod(rawValue: method) ?? .GET,
+            headers: headers,
+            body: body
+        )
     }
     
     // MARK: - Public Methods
@@ -78,30 +73,15 @@ class PolymarketDataService: ObservableObject {
         isLoading = true
         error = nil
 
-        var firstError: Error? = nil
-
-        do {
-            self.portfolioValue = try await fetchPortfolio(userId: userId)
-        } catch {
-            if firstError == nil { firstError = error }
-            self.portfolioValue = nil
-        }
-
-        do {
-            self.positions = try await fetchPositions(userId: userId)
-        } catch {
-            if firstError == nil { firstError = error }
-            self.positions = nil
-        }
-
-        do {
-            self.cashBalance = try await fetchCashBalance(userId: userId)
-        } catch {
-            if firstError == nil { firstError = error }
-            self.cashBalance = nil
-        }
-
-        self.error = firstError
+        // Use the new repository to refresh data
+        await portfolioRepository.refreshPortfolioData(userId: userId)
+        
+        // Update published properties from repository
+        self.portfolioValue = portfolioRepository.currentPortfolioValue
+        self.positions = portfolioRepository.currentPositions
+        self.cashBalance = portfolioRepository.currentCashBalance
+        self.error = portfolioRepository.error
+        
         isLoading = false
     }
     
@@ -116,16 +96,11 @@ class PolymarketDataService: ObservableObject {
         searchPage = 1
         searchQuery = query
         
-        do {
-            let response = try await performSearch(query: query, category: category, page: searchPage)
-            print("🔍 Search response: \(response.events.count) events, hasMore: \(response.hasMore)")
-            searchResults = response.events.map { $0.toGammaEvent() }
-            hasMoreSearchResults = response.hasMore
-            print("🔍 Converted to GammaEvents: \(searchResults.count)")
-        } catch {
-            print("🔍 Search error: \(error)")
-            self.error = error
-        }
+        // Use the new repository for search
+        searchResults = await eventRepository.searchEvents(query: query, category: category)
+        hasMoreSearchResults = eventRepository.hasMoreSearchResults
+        
+        print("🔍 Search completed: \(searchResults.count) events, hasMore: \(hasMoreSearchResults)")
         
         isSearching = false
     }
@@ -136,19 +111,15 @@ class PolymarketDataService: ObservableObject {
         isSearching = true
         searchPage += 1
         
-        do {
-            let response = try await performSearch(query: searchQuery, page: searchPage)
-            searchResults.append(contentsOf: response.events.map { $0.toGammaEvent() })
-            hasMoreSearchResults = response.hasMore
-        } catch {
-            self.error = error
-            searchPage -= 1
-        }
+        // Use the new repository for loading more results
+        searchResults = await eventRepository.loadMoreSearchResults()
+        hasMoreSearchResults = eventRepository.hasMoreSearchResults
         
         isSearching = false
     }
 
     func clearSearchResults() {
+        eventRepository.clearSearchResults()
         searchResults = []
         hasMoreSearchResults = false
     }
@@ -156,114 +127,39 @@ class PolymarketDataService: ObservableObject {
     // MARK: - Fetch Methods
     
     func fetchPortfolio(userId: String) async throws -> Double {
-        let url = URL(string: "https://data-api.polymarket.com/value?user=\(userId)")!
-        let data = try await makeRequest(url: url)
-        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [[String: Any]]
-        return (json.first?["value"] as? Double) ?? 0.0
+        guard let value = await portfolioRepository.getPortfolioValue(userId: userId) else {
+            throw APIError.noData
+        }
+        return value
     }
     
-    func fetchPnL(userId: String, interval: PnLInterval = .max, fidelity: PnLFidelity? = .oneHour) async throws -> [PnLDataPoint] {
-        let effectiveFidelity = fidelity ?? interval.defaultFidelity
-        let url = URL(string: "https://user-pnl-api.polymarket.com/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
-        let data = try await makeRequest(url: url)
-        
-        guard let raw = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
-        else { return [] }
-        
-        return raw.compactMap { dict in
-            guard let t = dict["t"] as? Int else { return nil }
-            
-            let p: Double
-            if let num = dict["p"] as? Double {
-                p = num
-            } else if let str = dict["p"] as? String, let num = Double(str) {
-                p = num
-            } else {
-                return nil
-            }
-            
-            return PnLDataPoint(
-                t: Date(timeIntervalSince1970: TimeInterval(t)),
-                p: p
-            )
-        }
+    func fetchPnL(userId: String, interval: PolymarketModels.PnLInterval = .max, fidelity: PolymarketModels.PnLFidelity? = .oneHour) async throws -> [PolymarketModels.PnLDataPoint] {
+        return await pnlRepository.getPnLData(userId: userId, interval: interval, fidelity: fidelity)
     }
     
-    func fetchPositions(userId: String, sizeThreshold: Double = 0.1, limit: Int = 50, offset: Int = 0, sortBy: String = "CURRENT", sortDirection: String = "DESC") async throws -> [Position] {
-        var components = URLComponents(string: "https://data-api.polymarket.com/positions")!
-        components.queryItems = [
-            .init(name: "user", value: userId),
-            .init(name: "sizeThreshold", value: String(sizeThreshold)),
-            .init(name: "limit", value: String(limit)),
-            .init(name: "offset", value: String(offset)),
-            .init(name: "sortBy", value: sortBy),
-            .init(name: "sortDirection", value: sortDirection)
-        ]
-        
-        guard let url = components.url else {
-            throw URLError(.badURL)
+    func fetchPositions(userId: String, sizeThreshold: Double = 0.1, limit: Int = 50, offset: Int = 0, sortBy: String = "CURRENT", sortDirection: String = "DESC") async throws -> [PolymarketModels.Position] {
+        guard let positions = await portfolioRepository.getPositions(userId: userId) else {
+            throw APIError.noData
         }
-        
-        let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode([Position].self, from: data)
+        return positions
     }
     
     func fetchCashBalance(userId: String) async throws -> Double {
-        let url = URL(string: "https://polygon-rpc.com")!
-        let contractAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
-        let methodId = "0x70a08231" // balanceOf(address)
-        let addressPadded = userId // .lowercased().replacingOccurrences(of: "0x", with: "").leftPadding(toLength: 64, withPad: "0")
-        
-        let data = methodId + addressPadded
-        
-        let body: [String: Any] = [
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "eth_call",
-            "params": [[
-                "to": contractAddress,
-                "data": data
-            ], "latest"]
-        ]
-        
-        let bodyData = try JSONSerialization.data(withJSONObject: body)
-        let responseData = try await makeRequest(url: url, method: "POST", body: bodyData)
-        
-        let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any]
-        guard let resultHex = json?["result"] as? String,
-              let balance = UInt64(resultHex.dropFirst(2), radix: 16) else {
-            throw URLError(.badServerResponse)
+        guard let balance = await portfolioRepository.getCashBalance(userId: userId) else {
+            throw APIError.noData
         }
-        
-        return Double(balance) / 1_000_000 // USDC has 6 decimals
+        return balance
     }
     
-    func performSearch(query: String, category: String = "all", page: Int = 1) async throws -> SearchResponse {
-        var components = URLComponents(string: "https://polymarket.com/api/events/search")!
-        components.queryItems = [
-            URLQueryItem(name: "_c", value: category),
-            URLQueryItem(name: "_q", value: query),
-            URLQueryItem(name: "_p", value: String(page))
-        ]
-        
-        guard let url = components.url else {
-            throw URLError(.badURL)
-        }
-        
-        let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(SearchResponse.self, from: data)
+    func performSearch(query: String, category: String = "all", page: Int = 1) async throws -> PolymarketModels.SearchResponse {
+        // This method is kept for legacy compatibility
+        let searchAPI = SearchAPI()
+        return try await searchAPI.searchEvents(query: query, category: category, page: page)
     }
     
-    func fetchTags() async throws -> [Tag] {
-        let url = URL(string: "https://polymarket.com/api/tags/filteredBySlug?tag=all&status=active")!
-        let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode([Tag].self, from: data)
+    func fetchTags() async throws -> [PolymarketModels.Tag] {
+        // This method is kept for legacy compatibility
+        return await eventRepository.getTags()
     }
     
     func fetchPaginatedEvents(
@@ -275,461 +171,12 @@ class PolymarketDataService: ObservableObject {
         ascending: Bool = false,
         offset: Int = 0,
         tagSlug: String? = nil
-    ) async throws -> PaginatedEventsResponse {
-        var components = URLComponents(string: "https://gamma-api.polymarket.com/events/pagination")!
-        var queryItems = [
-            URLQueryItem(name: "limit", value: String(limit)),
-            URLQueryItem(name: "active", value: String(active)),
-            URLQueryItem(name: "archived", value: String(archived)),
-            URLQueryItem(name: "closed", value: String(closed)),
-            URLQueryItem(name: "order", value: order),
-            URLQueryItem(name: "ascending", value: String(ascending)),
-            URLQueryItem(name: "offset", value: String(offset))
-        ]
-        
-        if let tagSlug = tagSlug, tagSlug != "all" {
-            queryItems.append(URLQueryItem(name: "tag_slug", value: tagSlug))
-        }
-        
-        components.queryItems = queryItems
-        
-        guard let url = components.url else {
-            throw URLError(.badURL)
-        }
-        
-        let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(PaginatedEventsResponse.self, from: data)
+    ) async throws -> PolymarketModels.GammaResponse {
+        // This method is kept for legacy compatibility
+        let tags = tagSlug.map { [$0] } ?? []
+        let page = (offset / limit) + 1
+        let gammaAPI = GammaAPI()
+        return try await gammaAPI.fetchEvents(page: page, limit: limit, tags: tags)
     }
 }
 
-// MARK: - Supporting Types
-
-extension PolymarketDataService {
-    enum PnLInterval: String {
-        case max = "max"
-        case month = "1m"
-        case week = "1w"
-        case day = "1d"
-        case twelveHours = "12h"
-        case sixHours = "6h"
-        
-        var defaultFidelity: PnLFidelity {
-            switch self {
-            case .max: return .twelveHours
-            case .month: return .threeHours
-            case .week: return .threeHours
-            case .day, .twelveHours, .sixHours: return .oneHour
-            }
-        }
-    }
-    
-    enum PnLFidelity: String {
-        case day = "1d"
-        case eighteenHours = "18h"
-        case twelveHours = "12h"
-        case threeHours = "3h"
-        case oneHour = "1h"
-    }
-    
-    enum PnLRange: String, CaseIterable {
-        case today = "today"
-        case day = "1d"
-        case week = "1w"
-        case month = "1m"
-        case max = "max"
-        
-        var interval: PnLInterval {
-            switch self {
-            case .max: return .max
-            case .month: return .month
-            case .week: return .week
-            case .day: return .day
-            case .today: return .day
-            }
-        }
-        
-        var label: String {
-            switch self {
-            case .max: return "All"
-            case .month: return "1M"
-            case .week: return "1W"
-            case .day: return "1D"
-            case .today: return "Today"
-            }
-        }
-    }
-    
-    struct PnLDataPoint: Decodable, Equatable {
-        var t: Date
-        var p: Double
-    }
-    
-    struct Position: Decodable {
-        let proxyWallet: String
-        let asset: String
-        let conditionId: String
-        let size: Double
-        let avgPrice: Double
-        let initialValue: Double
-        let currentValue: Double
-        let cashPnl: Double
-        let percentPnl: Double
-        let totalBought: Double
-        let realizedPnl: Double
-        let percentRealizedPnl: Double
-        let curPrice: Double
-        let redeemable: Bool
-        let mergeable: Bool
-        let title: String
-        let slug: String
-        let icon: String
-        let eventSlug: String
-        let outcome: String
-        let outcomeIndex: Int
-        let oppositeOutcome: String
-        let oppositeAsset: String
-        let endDate: String
-        let negativeRisk: Bool
-    }
-    
-    struct SearchResponse: Decodable {
-        let events: [Event]
-        let hasMore: Bool
-    }
-    
-    struct SearchMarket: Decodable {
-        let slug: String
-        let question: String?
-        let groupItemTitle: String?
-        let outcomes: [String]
-        let outcomePrices: [String]
-        let lastTradePrice: Double?
-        let bestAsk: Double?
-        let bestBid: Double?
-        let spread: Double?
-        let closed: Bool?
-        let archived: Bool?
-    }
-    
-    struct Event: Decodable {
-        let id: String
-        let title: String
-        let slug: String
-        let description: String?
-        let image: String?
-        let endDate: String?
-        let volume: Double?
-        let liquidity: Double?
-        let markets: [SearchMarket]
-        
-        // Convert Event to GammaEvent for UI consistency
-        func toGammaEvent() -> GammaEvent {
-            // Convert SearchMarket to GammaMarket
-            let convertedMarkets = markets.map { searchMarket in
-                GammaMarket(
-                    id: searchMarket.slug,
-                    question: searchMarket.question ?? "",
-                    conditionId: searchMarket.slug,
-                    slug: searchMarket.slug,
-                    resolutionSource: nil,
-                    endDate: endDate,
-                    liquidity: nil,
-                    startDate: nil,
-                    image: image,
-                    icon: nil,
-                    description: description,
-                    outcomes: try? String(data: JSONEncoder().encode(searchMarket.outcomes), encoding: .utf8),
-                    outcomePrices: try? String(data: JSONEncoder().encode(searchMarket.outcomePrices), encoding: .utf8),
-                    volume: nil,
-                    active: true,
-                    closed: searchMarket.closed,
-                    marketMakerAddress: nil,
-                    createdAt: nil,
-                    updatedAt: nil,
-                    new: false,
-                    featured: false,
-                    submittedBy: nil,
-                    archived: searchMarket.archived,
-                    resolvedBy: nil,
-                    restricted: false,
-                    groupItemTitle: searchMarket.groupItemTitle,
-                    groupItemThreshold: nil,
-                    questionID: nil,
-                    enableOrderBook: nil,
-                    orderPriceMinTickSize: nil,
-                    orderMinSize: nil,
-                    volumeNum: nil,
-                    liquidityNum: nil,
-                    endDateIso: nil,
-                    startDateIso: nil,
-                    hasReviewedDates: nil,
-                    volume1wk: nil,
-                    volume1mo: nil,
-                    volume1yr: nil,
-                    clobTokenIds: nil,
-                    umaBond: nil,
-                    umaReward: nil,
-                    volume1wkClob: nil,
-                    volume1moClob: nil,
-                    volume1yrClob: nil,
-                    volumeClob: nil,
-                    liquidityClob: nil,
-                    acceptingOrders: nil,
-                    negRisk: nil,
-                    negRiskMarketID: nil,
-                    negRiskRequestID: nil,
-                    ready: nil,
-                    funded: nil,
-                    acceptingOrdersTimestamp: nil,
-                    cyom: nil,
-                    competitive: nil,
-                    pagerDutyNotificationEnabled: nil,
-                    approved: nil,
-                    clobRewards: nil,
-                    rewardsMinSize: nil,
-                    rewardsMaxSpread: nil,
-                    spread: searchMarket.spread,
-                    oneDayPriceChange: nil,
-                    oneHourPriceChange: nil,
-                    oneWeekPriceChange: nil,
-                    lastTradePrice: searchMarket.lastTradePrice,
-                    bestBid: searchMarket.bestBid,
-                    bestAsk: searchMarket.bestAsk,
-                    automaticallyActive: nil,
-                    clearBookOnStart: nil,
-                    manualActivation: nil,
-                    negRiskOther: nil,
-                    umaResolutionStatuses: nil,
-                    pendingDeployment: nil,
-                    deploying: nil
-                )
-            }
-            
-            return GammaEvent(
-                id: id,
-                ticker: slug,
-                slug: slug,
-                title: title,
-                description: description,
-                resolutionSource: nil,
-                startDate: nil,
-                creationDate: nil,
-                endDate: endDate,
-                image: image,
-                icon: nil,
-                active: true,
-                closed: false,
-                archived: false,
-                new: false,
-                featured: false,
-                restricted: false,
-                liquidity: liquidity,
-                volume: volume,
-                openInterest: nil,
-                sortBy: nil,
-                createdAt: nil,
-                updatedAt: nil,
-                competitive: nil,
-                volume24hr: nil,
-                volume1wk: nil,
-                volume1mo: nil,
-                volume1yr: nil,
-                enableOrderBook: nil,
-                liquidityClob: nil,
-                negRisk: nil,
-                negRiskMarketID: nil,
-                commentCount: nil,
-                markets: convertedMarkets,
-                series: nil,
-                tags: nil,
-                cyom: nil,
-                showAllOutcomes: nil,
-                showMarketImages: nil,
-                enableNegRisk: nil,
-                automaticallyActive: nil,
-                seriesSlug: nil,
-                negRiskAugmented: nil,
-                pendingDeployment: nil,
-                deploying: nil
-            )
-        }
-    }
-    
-    struct Tag: Decodable {
-        let id: String
-        let label: String
-        let slug: String
-        let forceShow: Bool?
-        let forceHide: Bool?
-        let createdAt: String?
-        let updatedAt: String?
-    }
-    
-    struct PaginatedEventsResponse: Decodable {
-        let data: [GammaEvent]
-        let pagination: Pagination
-    }
-    
-    struct Pagination: Decodable {
-        let hasMore: Bool
-    }
-    
-    struct GammaEvent: Decodable {
-        let id: String
-        let ticker: String
-        let slug: String
-        let title: String
-        let description: String?
-        let resolutionSource: String?
-        let startDate: String?
-        let creationDate: String?
-        let endDate: String?
-        let image: String?
-        let icon: String?
-        let active: Bool?
-        let closed: Bool?
-        let archived: Bool?
-        let new: Bool?
-        let featured: Bool?
-        let restricted: Bool?
-        let liquidity: Double?
-        let volume: Double?
-        let openInterest: Double?
-        let sortBy: String?
-        let createdAt: String?
-        let updatedAt: String?
-        let competitive: Double?
-        let volume24hr: Double?
-        let volume1wk: Double?
-        let volume1mo: Double?
-        let volume1yr: Double?
-        let enableOrderBook: Bool?
-        let liquidityClob: Double?
-        let negRisk: Bool?
-        let negRiskMarketID: String?
-        let commentCount: Int?
-        let markets: [GammaMarket]
-        let series: [GammaSeries]?
-        let tags: [Tag]?
-        let cyom: Bool?
-        let showAllOutcomes: Bool?
-        let showMarketImages: Bool?
-        let enableNegRisk: Bool?
-        let automaticallyActive: Bool?
-        let seriesSlug: String?
-        let negRiskAugmented: Bool?
-        let pendingDeployment: Bool?
-        let deploying: Bool?
-    }
-    
-    struct GammaMarket: Decodable {
-        let id: String
-        let question: String
-        let conditionId: String
-        let slug: String
-        let resolutionSource: String?
-        let endDate: String?
-        let liquidity: String?
-        let startDate: String?
-        let image: String?
-        let icon: String?
-        let description: String?
-        let outcomes: String?
-        let outcomePrices: String?
-        let volume: String?
-        let active: Bool?
-        let closed: Bool?
-        let marketMakerAddress: String?
-        let createdAt: String?
-        let updatedAt: String?
-        let new: Bool?
-        let featured: Bool?
-        let submittedBy: String?
-        let archived: Bool?
-        let resolvedBy: String?
-        let restricted: Bool?
-        let groupItemTitle: String?
-        let groupItemThreshold: String?
-        let questionID: String?
-        let enableOrderBook: Bool?
-        let orderPriceMinTickSize: Double?
-        let orderMinSize: Double?
-        let volumeNum: Double?
-        let liquidityNum: Double?
-        let endDateIso: String?
-        let startDateIso: String?
-        let hasReviewedDates: Bool?
-        let volume1wk: Double?
-        let volume1mo: Double?
-        let volume1yr: Double?
-        let clobTokenIds: String?
-        let umaBond: String?
-        let umaReward: String?
-        let volume1wkClob: Double?
-        let volume1moClob: Double?
-        let volume1yrClob: Double?
-        let volumeClob: Double?
-        let liquidityClob: Double?
-        let acceptingOrders: Bool?
-        let negRisk: Bool?
-        let negRiskMarketID: String?
-        let negRiskRequestID: String?
-        let ready: Bool?
-        let funded: Bool?
-        let acceptingOrdersTimestamp: String?
-        let cyom: Bool?
-        let competitive: Double?
-        let pagerDutyNotificationEnabled: Bool?
-        let approved: Bool?
-        let clobRewards: [ClobReward]?
-        let rewardsMinSize: Double?
-        let rewardsMaxSpread: Double?
-        let spread: Double?
-        let oneDayPriceChange: Double?
-        let oneHourPriceChange: Double?
-        let oneWeekPriceChange: Double?
-        let lastTradePrice: Double?
-        let bestBid: Double?
-        let bestAsk: Double?
-        let automaticallyActive: Bool?
-        let clearBookOnStart: Bool?
-        let manualActivation: Bool?
-        let negRiskOther: Bool?
-        let umaResolutionStatuses: String?
-        let pendingDeployment: Bool?
-        let deploying: Bool?
-    }
-    
-    struct GammaSeries: Decodable {
-        let id: String
-        let ticker: String?
-        let slug: String
-        let title: String?
-        let seriesType: String?
-        let recurrence: String?
-        let image: String?
-        let icon: String?
-        let active: Bool?
-        let closed: Bool?
-        let archived: Bool?
-        let featured: Bool?
-        let restricted: Bool?
-        let createdAt: String?
-        let updatedAt: String?
-        let volume: Double?
-        let liquidity: Double?
-        let commentCount: Int?
-    }
-    
-    struct ClobReward: Decodable {
-        let id: String?
-        let conditionId: String?
-        let assetAddress: String?
-        let rewardsAmount: Double?
-        let rewardsDailyRate: Double?
-        let startDate: String?
-        let endDate: String?
-    }
-}

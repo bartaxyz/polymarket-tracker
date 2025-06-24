@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct PositionDetailView: View {
-    var position: PolymarketDataService.Position
+    var position: PolymarketModels.Position
     @ObservedObject private var dataService = PolymarketDataService.shared
     
     var body: some View {
@@ -173,7 +173,7 @@ struct StatusLabel: View {
 
 #Preview {
     NavigationStack {
-        PositionDetailView(position: PolymarketDataService.Position(
+        PositionDetailView(position: PolymarketModels.Position(
             proxyWallet: "0x123",
             asset: "0xabc",
             conditionId: "1",

@@ -23,7 +23,7 @@ struct HomeView: View {
     @State private var selectedPositionId: String?
     @State private var isRefreshing: Bool = false
     
-    var selectedPosition: PolymarketDataService.Position? {
+    var selectedPosition: PolymarketModels.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
     }
     
@@ -294,7 +294,7 @@ struct PortfolioTabView: View {
 
 
 struct PositionRowView: View {
-    let position: PolymarketDataService.Position
+    let position: PolymarketModels.Position
     
     var body: some View {
         HStack {

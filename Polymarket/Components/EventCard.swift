@@ -8,12 +8,12 @@
 import SwiftUI
 
 struct EventCard: View {
-    let event: PolymarketDataService.GammaEvent
+    let event: PolymarketModels.GammaEvent
     
     @State private var isHovered = false
     
-    private var topMarkets: [(market: PolymarketDataService.GammaMarket, topOutcome: String, percentage: Double)] {
-        var allMarketData: [(market: PolymarketDataService.GammaMarket, topOutcome: String, percentage: Double, isResolved: Bool)] = []
+    private var topMarkets: [(market: PolymarketModels.GammaMarket, topOutcome: String, percentage: Double)] {
+        var allMarketData: [(market: PolymarketModels.GammaMarket, topOutcome: String, percentage: Double, isResolved: Bool)] = []
         
         for market in event.markets {
             // Check if market is resolved (closed)
