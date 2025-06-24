@@ -65,6 +65,7 @@
 				Components/CurrencyText.swift,
 				Components/PercentageText.swift,
 				Components/ProfitLossChart.swift,
+				Components/StatView.swift,
 				Components/Tag.swift,
 				Components/TagButton.swift,
 				Models/WalletConnectModel.swift,

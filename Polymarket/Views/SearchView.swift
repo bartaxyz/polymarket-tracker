@@ -33,7 +33,7 @@ struct SearchView: View {
                 } else {
                     List {
                         ForEach(dataService.searchResults, id: \.id) { event in
-                            NavigationLink(destination: MarketDetailView(market: .event(event))) {
+                            NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
                                 EventRowView(event: event)
                             }
                         }
@@ -71,11 +71,11 @@ struct SearchView: View {
 }
 
 private struct EventRowView: View {
-    let event: PolymarketDataService.Event
+    let event: PolymarketDataService.GammaEvent
     
     var body: some View {
         HStack(spacing: 12) {
-            if let imageUrl = event.imageUrl,
+            if let imageUrl = event.image,
                let url = URL(string: imageUrl) {
                 AsyncImage(url: url) { image in
                     image

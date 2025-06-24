@@ -69,9 +69,30 @@ struct MarketIndicator: View {
     
     private var gaugeColor: Color {
         guard let percentage = marketData.percentage else { return .gray }
-        if percentage < 0.3 { return .negative }
-        else if percentage < 0.7 { return .orange }
-        else { return .positive }
+        
+        // Check if this is a binary market with Yes/No or Up/Down outcomes
+        if marketData.isBinary {
+            let firstMarket = event.markets.first!
+            if let outcomesString = firstMarket.outcomes,
+               let outcomesData = outcomesString.data(using: .utf8),
+               let outcomes = try? JSONDecoder().decode([String].self, from: outcomesData) {
+                
+                let isYesNo = outcomes.contains(where: { $0.lowercased() == "yes" }) && 
+                             outcomes.contains(where: { $0.lowercased() == "no" })
+                let isUpDown = outcomes.contains(where: { $0.lowercased() == "up" }) && 
+                              outcomes.contains(where: { $0.lowercased() == "down" })
+                
+                if isYesNo || isUpDown {
+                    // Use traditional red/orange/green for Yes/No and Up/Down markets
+                    if percentage < 0.3 { return .negative }
+                    else if percentage < 0.7 { return .orange }
+                    else { return .positive }
+                }
+            }
+        }
+        
+        // Use neutral accent color for all other markets
+        return .accent
     }
     
     private func formatPercentage(_ percentage: Double) -> String {

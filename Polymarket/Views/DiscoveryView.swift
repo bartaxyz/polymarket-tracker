@@ -25,44 +25,44 @@ struct DiscoveryView: View {
     ]
     
     var body: some View {
-        Group {
-            NavigationStack {
+        NavigationStack {
+            Group {
                 if !searchQuery.isEmpty {
                     searchResultsView
                 } else {
                     discoveryContentView
                 }
             }
-        }
-        .navigationTitle(searchQuery.isEmpty ? "Discover" : "Search Results")
-        .searchable(text: $searchQuery, prompt: "Search markets...")
-        .onSubmit(of: .search) {
-            if !searchQuery.isEmpty {
-                Task {
-                    await dataService.searchEvents(query: searchQuery)
+            .navigationTitle(searchQuery.isEmpty ? "Discover" : "Search Results")
+            .searchable(text: $searchQuery, prompt: "Search markets...")
+            .onSubmit(of: .search) {
+                if !searchQuery.isEmpty {
+                    Task {
+                        await dataService.searchEvents(query: searchQuery)
+                    }
                 }
             }
-        }
-        .onChange(of: searchQuery) { _, newValue in
-            if newValue.isEmpty {
-                dataService.clearSearchResults()
-            } else {
-                Task {
-                    await dataService.searchEvents(query: newValue)
+            .onChange(of: searchQuery) { _, newValue in
+                if newValue.isEmpty {
+                    dataService.clearSearchResults()
+                } else {
+                    Task {
+                        await dataService.searchEvents(query: newValue)
+                    }
                 }
             }
-        }
-        .task {
-            if tags.isEmpty {
+            .task {
+                if tags.isEmpty {
+                    await loadTags()
+                }
+                if events.isEmpty {
+                    loadEvents(withTagSlug: selectedTag)
+                }
+            }
+            .refreshable {
                 await loadTags()
-            }
-            if events.isEmpty {
                 loadEvents(withTagSlug: selectedTag)
             }
-        }
-        .refreshable {
-            await loadTags()
-            loadEvents(withTagSlug: selectedTag)
         }
     }
     
@@ -80,7 +80,7 @@ struct DiscoveryView: View {
             } else {
                 List {
                     ForEach(dataService.searchResults, id: \.id) { event in
-                        NavigationLink(destination: MarketDetailView(market: .event(event))) {
+                        NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
                             SearchResultRowView(event: event)
                         }
                     }
@@ -214,40 +214,88 @@ struct DiscoveryView: View {
 
 
 struct SearchResultRowView: View {
-    let event: PolymarketDataService.Event
+    let event: PolymarketDataService.GammaEvent
     
     var body: some View {
         HStack(spacing: 12) {
-            if let imageUrl = event.imageUrl,
-               let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
+            // Event Image
+            Group {
+                if let imageUrl = event.image, !imageUrl.isEmpty, let url = URL(string: imageUrl) {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure(_):
+                            Color.gray.opacity(0.2)
+                        case .empty:
+                            Color.gray.opacity(0.2)
+                        @unknown default:
+                            Color.gray.opacity(0.2)
+                        }
+                    }
+                } else {
                     Color.gray.opacity(0.2)
                 }
-                .frame(width: 40, height: 40)
-                .cornerRadius(8)
-            } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.gray.opacity(0.2))
-                    .frame(width: 40, height: 40)
             }
+            .frame(width: 50, height: 50)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(event.title)
-                    .lineLimit(2)
-                    .font(.subheadline)
+                    .font(.headline)
+                    .fontWeight(.medium)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
                 
-                if let volume = event.volume {
-                    Text("Volume: $\(String(format: "%.2f", volume))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                HStack(spacing: 16) {
+                    if let volume = event.volume {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Volume")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text(formatSearchVolume(volume))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    
+                    if let liquidity = event.liquidity {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Liquidity")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text(formatSearchVolume(liquidity))
+                                .font(.caption)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    
+                    Spacer()
                 }
             }
+            
+            Spacer()
+            
+            // Market Indicator with gauge
+            VStack(alignment: .center) {
+                MarketIndicator(event: event)
+                Spacer(minLength: 0)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+    }
+    
+    private func formatSearchVolume(_ number: Double) -> String {
+        if number >= 1_000_000 {
+            return String(format: "%.1fM", number / 1_000_000)
+        } else if number >= 1_000 {
+            return String(format: "%.1fK", number / 1_000)
+        } else {
+            return String(format: "%.0f", number)
+        }
     }
 }
 

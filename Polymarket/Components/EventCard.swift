@@ -13,9 +13,12 @@ struct EventCard: View {
     @State private var isHovered = false
     
     private var topMarkets: [(market: PolymarketDataService.GammaMarket, topOutcome: String, percentage: Double)] {
-        var marketData: [(market: PolymarketDataService.GammaMarket, topOutcome: String, percentage: Double)] = []
+        var allMarketData: [(market: PolymarketDataService.GammaMarket, topOutcome: String, percentage: Double, isResolved: Bool)] = []
         
         for market in event.markets {
+            // Check if market is resolved (closed)
+            let isResolved = market.closed ?? false
+            
             // Parse outcomes
             guard let outcomesString = market.outcomes,
                   let outcomesData = outcomesString.data(using: .utf8),
@@ -42,16 +45,42 @@ struct EventCard: View {
                 continue
             }
             
-            // Find the highest probability outcome
-            let maxIndex = prices.enumerated().max(by: { $0.element < $1.element })?.offset ?? 0
-            let topPercentage = prices[maxIndex]
-            let topOutcome = outcomes[maxIndex]
+            // Check if this is a Yes/No market
+            let isYesNo = outcomes.count == 2 && 
+                         outcomes.contains(where: { $0.lowercased() == "yes" }) && 
+                         outcomes.contains(where: { $0.lowercased() == "no" })
             
-            marketData.append((market: market, topOutcome: topOutcome, percentage: topPercentage))
+            let displayPercentage: Double
+            let displayOutcome: String
+            
+            if isYesNo {
+                // For Yes/No markets, always show "Yes" percentage for sorting but don't show the outcome label
+                if let yesIndex = outcomes.firstIndex(where: { $0.lowercased() == "yes" }) {
+                    displayPercentage = prices[yesIndex]
+                    displayOutcome = "" // Don't show "Yes" label for Yes/No markets
+                } else {
+                    // Fallback if we can't find "Yes"
+                    let maxIndex = prices.enumerated().max(by: { $0.element < $1.element })?.offset ?? 0
+                    displayPercentage = prices[maxIndex]
+                    displayOutcome = outcomes[maxIndex]
+                }
+            } else {
+                // For non-Yes/No markets, show the highest probability outcome
+                let maxIndex = prices.enumerated().max(by: { $0.element < $1.element })?.offset ?? 0
+                displayPercentage = prices[maxIndex]
+                displayOutcome = outcomes[maxIndex]
+            }
+            
+            allMarketData.append((market: market, topOutcome: displayOutcome, percentage: displayPercentage, isResolved: isResolved))
         }
         
+        // Filter out resolved markets unless all are resolved
+        let unresolvedMarkets = allMarketData.filter { !$0.isResolved }
+        let marketsToShow = unresolvedMarkets.isEmpty ? allMarketData : unresolvedMarkets
+        
         // Sort by percentage descending and take top 2
-        return Array(marketData.sorted { $0.percentage > $1.percentage }.prefix(2))
+        let sortedMarkets = marketsToShow.sorted { $0.percentage > $1.percentage }
+        return Array(sortedMarkets.prefix(2).map { (market: $0.market, topOutcome: $0.topOutcome, percentage: $0.percentage) })
     }
     
     var body: some View {
@@ -136,15 +165,17 @@ struct EventCard: View {
             ForEach(Array(topMarkets.enumerated()), id: \.offset) { index, marketData in
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(marketData.market.question ?? "Market \(index + 1)")
+                        Text(marketData.market.groupItemTitle ?? marketData.market.question ?? "Market \(index + 1)")
                             .font(.caption)
                             .fontWeight(.medium)
                             .lineLimit(2)
                         
-                        Text(marketData.topOutcome)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
+                        if !marketData.topOutcome.isEmpty {
+                            Text(marketData.topOutcome)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
                     }
                     
                     Spacer()
@@ -196,22 +227,6 @@ struct EventCard: View {
             return "\(Self.numberFormatter.string(from: NSNumber(value: number / 1_000)) ?? "")K"
         } else {
             return Self.numberFormatter.string(from: NSNumber(value: number)) ?? "0"
-        }
-    }
-}
-
-struct StatView: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.subheadline)
-                .fontWeight(.medium)
         }
     }
 }

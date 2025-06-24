@@ -33,7 +33,7 @@ struct MarketDetailView: View {
         var imageUrl: String? {
             switch self {
             case .event(let event):
-                return event.imageUrl
+                return event.image
             case .gammaEvent(let event):
                 return event.image
             }
@@ -218,25 +218,23 @@ struct MarketDetailView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(tags, id: \.id) { tag in
-                        Text(tag.label)
-                            .font(.subheadline)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundColor(.blue)
-                            .clipShape(Capsule())
+                        Tag(tag.label)
                     }
                 }
             }
+            .scrollClipDisabled()
         }
     }
     
     private func outcomesList(outcomes: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(outcomes, id: \.self) { outcome in
-                Text("• \(outcome)")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
+        HStack(spacing: 8) {
+            Spacer()
+            ForEach(Array(outcomes.enumerated()), id: \.element) { index, outcome in
+                OutcomeBadge(
+                    text: outcome,
+                    number: index + 1,
+                    isPositive: index == 0
+                )
             }
         }
     }
@@ -288,6 +286,42 @@ private struct MarketStatView: View {
                 .font(.subheadline)
                 .fontWeight(.medium)
         }
+    }
+}
+
+// Helper view for outcome badges
+private struct OutcomeBadge: View {
+    let text: String
+    let number: Int
+    let isPositive: Bool
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("\(number)")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(textColor)
+                .frame(width: 20, height: 20)
+                .background(backgroundColor)
+                .clipShape(Circle())
+            
+            Text(text)
+                .font(.callout)
+                .fontWeight(.medium)
+                .foregroundColor(textColor)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(backgroundColor.opacity(0.15))
+        .cornerRadius(20)
+    }
+    
+    private var backgroundColor: Color {
+        return isPositive ? Color("PositiveColor") : Color("NegativeColor")
+    }
+    
+    private var textColor: Color {
+        return isPositive ? Color("PositiveColor") : Color("NegativeColor")
     }
 }
 
