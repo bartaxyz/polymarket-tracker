@@ -9,8 +9,8 @@ import SwiftUI
 import Charts
 
 struct ProfitLossChart: View {
-    let data: [PolymarketDataService.PnLDataPoint]
-    let range: PolymarketDataService.PnLRange
+    let data: [PolymarketModels.PnLDataPoint]
+    let range: PolymarketModels.PnLRange
     
     var hideXAxis: Bool = false
     var hideYAxis: Bool = false

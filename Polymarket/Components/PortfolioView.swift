@@ -16,8 +16,8 @@ struct PortfolioView: View {
     var showPicker: Bool = false
 
     @StateObject private var dataService = PolymarketDataService.shared
-    @State private var data: [PolymarketDataService.PnLDataPoint] = []
-    @State private var range: PolymarketDataService.PnLRange = .today
+    @State private var data: [PolymarketModels.PnLDataPoint] = []
+    @State private var range: PolymarketModels.PnLRange = .today
     @State private var isLoading: Bool = false
     @State private var lastUpdated: Date = Date()
     @State private var viewSize: CGSize = .zero
@@ -30,7 +30,7 @@ struct PortfolioView: View {
         return Calendar.current.startOfDay(for: .now.addingTimeInterval(60 * 60 * 24))
     }
 
-    var filteredData: [PolymarketDataService.PnLDataPoint] {
+    var filteredData: [PolymarketModels.PnLDataPoint] {
         if isToday {
             return data.filter { $0.t >= todayStart && $0.t < todayEnd }
         }
@@ -42,9 +42,9 @@ struct PortfolioView: View {
         guard let lastValue = last, let firstValue = first else { return nil }
         return lastValue - firstValue
     }
-    var normalizedData: [PolymarketDataService.PnLDataPoint] {
+    var normalizedData: [PolymarketModels.PnLDataPoint] {
         return filteredData.map { point in
-            PolymarketDataService.PnLDataPoint(
+            PolymarketModels.PnLDataPoint(
                 t: point.t,
                 p: point.p - first!
             )
@@ -99,7 +99,7 @@ struct PortfolioView: View {
             
             if showPicker {
                 Picker(selection: $range, label: EmptyView()) {
-                    ForEach(PolymarketDataService.PnLRange.allCases, id: \.self) { rangeOption in
+                    ForEach(PolymarketModels.PnLRange.allCases, id: \.self) { rangeOption in
                         Text(rangeOption.label).tag(rangeOption)
                     }
                 }
@@ -139,7 +139,7 @@ struct PortfolioView: View {
         
         guard let pnlData = try? await dataService.fetchPnL(
             userId: userId,
-            interval: PolymarketDataService.PnLInterval(rawValue: range.rawValue) ?? .day
+            interval: PolymarketModels.PnLInterval(rawValue: range.rawValue) ?? .day
         ) else { return }
         
         data = pnlData

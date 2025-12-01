@@ -71,7 +71,7 @@ struct SearchView: View {
 }
 
 private struct EventRowView: View {
-    let event: PolymarketDataService.GammaEvent
+    let event: PolymarketModels.GammaEvent
     
     var body: some View {
         HStack(spacing: 12) {

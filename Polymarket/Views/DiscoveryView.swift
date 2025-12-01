@@ -9,8 +9,8 @@ import SwiftUI
 
 struct DiscoveryView: View {
     // State
-    @State private var tags: [PolymarketDataService.Tag] = []
-    @State private var events: [PolymarketDataService.GammaEvent] = []
+    @State private var tags: [PolymarketModels.Tag] = []
+    @State private var events: [PolymarketModels.GammaEvent] = []
     @State private var selectedTag: String?
     @State private var isLoading = false
     @State private var isLoadingMore = false
@@ -214,7 +214,7 @@ struct DiscoveryView: View {
 
 
 struct SearchResultRowView: View {
-    let event: PolymarketDataService.GammaEvent
+    let event: PolymarketModels.GammaEvent
     
     var body: some View {
         HStack(spacing: 12) {

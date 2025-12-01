@@ -9,8 +9,8 @@ import SwiftUI
 
 struct MarketDetailView: View {
     enum Market {
-        case event(PolymarketDataService.Event)
-        case gammaEvent(PolymarketDataService.GammaEvent)
+        case event(PolymarketModels.Event)
+        case gammaEvent(PolymarketModels.GammaEvent)
         
         var title: String {
             switch self {
@@ -84,7 +84,7 @@ struct MarketDetailView: View {
             }
         }
         
-        var markets: [PolymarketDataService.GammaMarket]? {
+        var markets: [PolymarketModels.GammaMarket]? {
             switch self {
             case .event:
                 return nil
@@ -93,7 +93,7 @@ struct MarketDetailView: View {
             }
         }
         
-        var tags: [PolymarketDataService.Tag]? {
+        var tags: [PolymarketModels.Tag]? {
             switch self {
             case .event:
                 return nil
@@ -186,7 +186,7 @@ struct MarketDetailView: View {
         }
     }
     
-    private func marketsView(markets: [PolymarketDataService.GammaMarket]) -> some View {
+    private func marketsView(markets: [PolymarketModels.GammaMarket]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Outcomes")
                 .font(.headline)
@@ -209,7 +209,7 @@ struct MarketDetailView: View {
         }
     }
     
-    private func tagsView(tags: [PolymarketDataService.Tag]) -> some View {
+    private func tagsView(tags: [PolymarketModels.Tag]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Tags")
                 .font(.headline)
@@ -327,7 +327,7 @@ private struct OutcomeBadge: View {
 
 #Preview {
     NavigationStack {
-        MarketDetailView(market: .gammaEvent(PolymarketDataService.GammaEvent(
+        MarketDetailView(market: .gammaEvent(PolymarketModels.GammaEvent(
             id: "123",
             ticker: "BTCUSD",
             slug: "bitcoin-price",
@@ -362,7 +362,7 @@ private struct OutcomeBadge: View {
             negRiskMarketID: nil,
             commentCount: 25,
             markets: [
-                PolymarketDataService.GammaMarket(
+                PolymarketModels.GammaMarket(
                     id: "m1",
                     question: "Will Bitcoin be above $100,000?",
                     conditionId: "cond1",
@@ -442,7 +442,7 @@ private struct OutcomeBadge: View {
             ],
             series: nil,
             tags: [
-                PolymarketDataService.Tag(
+                PolymarketModels.Tag(
                     id: "t1",
                     label: "Crypto",
                     slug: "crypto",
@@ -451,7 +451,7 @@ private struct OutcomeBadge: View {
                     createdAt: nil,
                     updatedAt: nil
                 ),
-                PolymarketDataService.Tag(
+                PolymarketModels.Tag(
                     id: "t2",
                     label: "Bitcoin",
                     slug: "bitcoin",

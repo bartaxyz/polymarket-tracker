@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TagBar: View {
-    let tags: [PolymarketDataService.Tag]
+    let tags: [PolymarketModels.Tag]
     @Binding var selectedTag: String?
     let onTagSelected: (String?) -> Void
     
@@ -17,7 +17,7 @@ struct TagBar: View {
             HStack(spacing: 12) {
                 // All tag
                 TagButton(
-                    tag: PolymarketDataService.Tag(
+                    tag: PolymarketModels.Tag(
                         id: "all",
                         label: "All",
                         slug: "all",
