@@ -83,10 +83,17 @@ struct PortfolioView: View {
                         )
                         .font(.largeTitle)
 
-                        if let cash = dataService.cashBalance, cash > 0.01 {
-                            Text("Cash: \(cash, format: .currency(code: "USD"))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            if let positionValue = dataService.portfolioValue {
+                                Text("Positions: \(positionValue, format: .currency(code: "USD"))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if let cash = dataService.cashBalance {
+                                Text("Cash: \(cash, format: .currency(code: "USD"))")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                     
