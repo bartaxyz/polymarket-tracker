@@ -22,7 +22,6 @@ struct HomeView: View {
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var isRefreshing: Bool = false
-    @State private var searchQuery: String = ""
     
     var selectedPosition: PolymarketDataService.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
@@ -31,18 +30,21 @@ struct HomeView: View {
     var body: some View {
 #if os(iOS)
         TabView {
-            NavigationStack {
-                PortfolioTabView(wallet: wallet, searchQuery: $searchQuery)
-                    .searchable(text: $searchQuery, prompt: "Search markets...")
-            }
-            .tabItem {
-                Label("Portfolio", systemImage: "chart.pie")
+            Tab("Portfolio", systemImage: "chart.pie") {
+                NavigationStack {
+                    PortfolioTabView(wallet: wallet)
+                }
             }
             
-            DiscoveryView()
-                .tabItem {
-                    Label("Discover", systemImage: "sparkles")
+            Tab(role: .search) {
+                NavigationStack {
+                    SearchMarketView()
                 }
+            }
+            
+            Tab("Discover", systemImage: "sparkles") {
+                DiscoveryView()
+            }
         }
         .onChange(of: wallet) { _, wallet in
             if let address = wallet?.polymarketAddress {
@@ -166,7 +168,6 @@ struct HomeView: View {
 
 struct PortfolioTabView: View {
     let wallet: WalletConnectModel?
-    @Binding var searchQuery: String
     @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var isConnectWalletPresented = false
     @Environment(\.modelContext) private var modelContext
@@ -285,37 +286,6 @@ struct PortfolioTabView: View {
         }
         .sheet(isPresented: $isConnectWalletPresented) {
             ConnectWalletManuallyView()
-        }
-        .searchable(text: $searchQuery, prompt: "Search markets...")
-        .searchSuggestions {
-            if !searchQuery.isEmpty {
-                if dataService.isSearching && dataService.searchResults.isEmpty {
-                    ProgressView("Searching...")
-                } else {
-                    ForEach(dataService.searchResults, id: \.id) { event in
-                        NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
-                            SearchEventRow(event: event)
-                        }
-                        .searchCompletion(event.title)
-                    }
-                    if dataService.hasMoreSearchResults {
-                        ProgressView()
-                            .onAppear {
-                                Task { await dataService.loadMoreSearchResults() }
-                            }
-                    }
-                }
-            }
-        }
-        .onSubmit(of: .search) {
-            Task { await dataService.searchEvents(query: searchQuery) }
-        }
-        .onChange(of: searchQuery) { _, newValue in
-            if newValue.isEmpty {
-                dataService.clearSearchResults()
-            } else {
-                Task { await dataService.searchEvents(query: newValue) }
-            }
         }
     }
     
