@@ -173,10 +173,12 @@ class PolymarketDataService: ObservableObject {
     func fetchPortfolio(userId: String) async throws -> Double {
         let url = URL(string: "https://data-api.polymarket.com/value?user=\(userId)")!
         let data = try await makeRequest(url: url)
-        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] else {
-            return 0.0
+        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]],
+              let first = json.first,
+              let value = first["value"] as? Double else {
+            throw URLError(.cannotParseResponse)
         }
-        return (json.first?["value"] as? Double) ?? 0.0
+        return value
     }
     
     func fetchPnL(userId: String, interval: PnLInterval = .max, fidelity: PnLFidelity? = .oneHour) async throws -> [PnLDataPoint] {
@@ -257,7 +259,7 @@ class PolymarketDataService: ObservableObject {
               let resultHex = json["result"] as? String,
               resultHex.count > 2,
               let balance = UInt64(resultHex.dropFirst(2), radix: 16) else {
-            return 0.0
+            throw URLError(.cannotParseResponse)
         }
         
         return Double(balance) / 1_000_000 // USDC has 6 decimals
