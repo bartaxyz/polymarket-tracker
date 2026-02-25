@@ -78,31 +78,46 @@ class PolymarketDataService: ObservableObject {
         isLoading = true
         error = nil
 
-        var firstError: Error? = nil
+        // Run all three fetches concurrently
+        async let portfolioTask: Double? = try? fetchPortfolio(userId: userId)
+        async let positionsTask: [Position]? = try? fetchAllPositions(userId: userId)
+        async let cashTask: Double? = try? fetchCashBalance(userId: userId)
 
-        do {
-            self.portfolioValue = try await fetchPortfolio(userId: userId)
-        } catch {
-            if firstError == nil { firstError = error }
-            self.portfolioValue = nil
+        let (portfolio, positions, cash) = await (portfolioTask, positionsTask, cashTask)
+
+        self.portfolioValue = portfolio
+        self.positions = positions
+        self.cashBalance = cash
+
+        // Flag error if all fetches failed
+        if portfolio == nil && positions == nil && cash == nil {
+            self.error = URLError(.badServerResponse)
         }
-
-        do {
-            self.positions = try await fetchPositions(userId: userId)
-        } catch {
-            if firstError == nil { firstError = error }
-            self.positions = nil
-        }
-
-        do {
-            self.cashBalance = try await fetchCashBalance(userId: userId)
-        } catch {
-            if firstError == nil { firstError = error }
-            self.cashBalance = nil
-        }
-
-        self.error = firstError
         isLoading = false
+    }
+
+    /// Fetches all positions with automatic pagination
+    func fetchAllPositions(userId: String, sizeThreshold: Double = 0.1) async throws -> [Position] {
+        let pageSize = 50
+        var allPositions: [Position] = []
+        var offset = 0
+
+        while true {
+            let batch = try await fetchPositions(
+                userId: userId,
+                sizeThreshold: sizeThreshold,
+                limit: pageSize,
+                offset: offset
+            )
+            allPositions.append(contentsOf: batch)
+
+            if batch.count < pageSize {
+                break
+            }
+            offset += pageSize
+        }
+
+        return allPositions
     }
     
     func searchEvents(query: String, category: String = "all") async {
@@ -158,8 +173,12 @@ class PolymarketDataService: ObservableObject {
     func fetchPortfolio(userId: String) async throws -> Double {
         let url = URL(string: "https://data-api.polymarket.com/value?user=\(userId)")!
         let data = try await makeRequest(url: url)
-        let json = try JSONSerialization.jsonObject(with: data, options: []) as! [[String: Any]]
-        return (json.first?["value"] as? Double) ?? 0.0
+        guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]],
+              let first = json.first,
+              let value = first["value"] as? Double else {
+            throw URLError(.cannotParseResponse)
+        }
+        return value
     }
     
     func fetchPnL(userId: String, interval: PnLInterval = .max, fidelity: PnLFidelity? = .oneHour) async throws -> [PnLDataPoint] {
@@ -211,12 +230,17 @@ class PolymarketDataService: ObservableObject {
     }
     
     func fetchCashBalance(userId: String) async throws -> Double {
-        let url = URL(string: "https://polygon-rpc.com")!
+        let url = URL(string: "https://polygon-bor-rpc.publicnode.com")!
+        // USDC on Polygon (Polymarket uses this for collateral)
         let contractAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
         let methodId = "0x70a08231" // balanceOf(address)
-        let addressPadded = userId // .lowercased().replacingOccurrences(of: "0x", with: "").leftPadding(toLength: 64, withPad: "0")
+        // ABI-encode: strip 0x prefix, left-pad address to 32 bytes (64 hex chars)
+        let addressHex = userId.lowercased().hasPrefix("0x")
+            ? String(userId.dropFirst(2))
+            : userId
+        let addressPadded = String(repeating: "0", count: max(0, 64 - addressHex.count)) + addressHex
         
-        let data = methodId + addressPadded
+        let callData = methodId + addressPadded
         
         let body: [String: Any] = [
             "jsonrpc": "2.0",
@@ -224,17 +248,18 @@ class PolymarketDataService: ObservableObject {
             "method": "eth_call",
             "params": [[
                 "to": contractAddress,
-                "data": data
+                "data": callData
             ], "latest"]
         ]
         
         let bodyData = try JSONSerialization.data(withJSONObject: body)
         let responseData = try await makeRequest(url: url, method: "POST", body: bodyData)
         
-        let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any]
-        guard let resultHex = json?["result"] as? String,
+        guard let json = try JSONSerialization.jsonObject(with: responseData) as? [String: Any],
+              let resultHex = json["result"] as? String,
+              resultHex.count > 2,
               let balance = UInt64(resultHex.dropFirst(2), radix: 16) else {
-            throw URLError(.badServerResponse)
+            throw URLError(.cannotParseResponse)
         }
         
         return Double(balance) / 1_000_000 // USDC has 6 decimals
