@@ -22,6 +22,12 @@ struct PortfolioView: View {
     @State private var lastUpdated: Date = Date()
     @State private var viewSize: CGSize = .zero
 
+    /// Total portfolio value = positions value + cash balance
+    var totalPortfolioValue: Double? {
+        guard let positionValue = dataService.portfolioValue else { return nil }
+        return positionValue + (dataService.cashBalance ?? 0)
+    }
+
     var isToday: Bool { range == .today }
     var todayStart: Date {
         return Calendar.current.startOfDay(for: .now)
@@ -71,10 +77,18 @@ struct PortfolioView: View {
             VStack(spacing: 16) {
             if showHeader {
                 HStack {
-                    CurrencyText(
-                        amount: dataService.portfolioValue
-                    )
-                    .font(.largeTitle)
+                    VStack(alignment: .leading, spacing: 2) {
+                        CurrencyText(
+                            amount: totalPortfolioValue
+                        )
+                        .font(.largeTitle)
+
+                        if let cash = dataService.cashBalance, cash > 0.01 {
+                            Text("Cash: \(cash, format: .currency(code: "USD"))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                     
                     Spacer()
                     

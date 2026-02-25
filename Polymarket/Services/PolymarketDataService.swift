@@ -228,7 +228,7 @@ class PolymarketDataService: ObservableObject {
     }
     
     func fetchCashBalance(userId: String) async throws -> Double {
-        let url = URL(string: "https://polygon-rpc.com")!
+        let url = URL(string: "https://polygon-bor-rpc.publicnode.com")!
         // USDC on Polygon (Polymarket uses this for collateral)
         let contractAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
         let methodId = "0x70a08231" // balanceOf(address)
