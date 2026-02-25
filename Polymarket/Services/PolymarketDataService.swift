@@ -6,13 +6,30 @@
 //
 
 import Foundation
-import Combine
 
 @MainActor
 class PolymarketDataService: ObservableObject {
     static let shared = PolymarketDataService()
     
+    // MARK: - API Endpoints
+    
+    private enum API {
+        static let dataAPI = "https://data-api.polymarket.com"
+        static let pnlAPI = "https://user-pnl-api.polymarket.com"
+        static let gammaAPI = "https://gamma-api.polymarket.com"
+        static let searchAPI = "https://polymarket.com/api"
+        static let polygonRPC = "https://polygon-bor-rpc.publicnode.com"
+        /// USDC on Polygon (Polymarket collateral)
+        static let usdcContract = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+    }
+    
     private let session = URLSession.shared
+    
+    private let jsonDecoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }()
     
     // Published properties for observable state
     @Published private(set) var portfolioValue: Double?
@@ -47,20 +64,14 @@ class PolymarketDataService: ObservableObject {
             request.addValue(value, forHTTPHeaderField: key)
         }
         
-        do {
-            let (data, response) = try await session.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse,
-                  (200...299).contains(httpResponse.statusCode) else {
-                throw URLError(.badServerResponse)
-            }
-            return data
-        } catch {
-            // Handle task cancellation gracefully
-            if let urlError = error as? URLError, urlError.code == .cancelled {
-                print("Request cancelled: \(url.absoluteString)")
-            }
-            throw error
+        let (data, response) = try await session.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
         }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode, url: url)
+        }
+        return data
     }
     
     // MARK: - Public Methods
@@ -171,7 +182,7 @@ class PolymarketDataService: ObservableObject {
     // MARK: - Fetch Methods
     
     func fetchPortfolio(userId: String) async throws -> Double {
-        let url = URL(string: "https://data-api.polymarket.com/value?user=\(userId)")!
+        let url = URL(string: "\(API.dataAPI)/value?user=\(userId)")!
         let data = try await makeRequest(url: url)
         guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]],
               let first = json.first,
@@ -183,7 +194,7 @@ class PolymarketDataService: ObservableObject {
     
     func fetchPnL(userId: String, interval: PnLInterval = .max, fidelity: PnLFidelity? = .oneHour) async throws -> [PnLDataPoint] {
         let effectiveFidelity = fidelity ?? interval.defaultFidelity
-        let url = URL(string: "https://user-pnl-api.polymarket.com/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
+        let url = URL(string: "\(API.pnlAPI)/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
         let data = try await makeRequest(url: url)
         
         guard let raw = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
@@ -209,7 +220,7 @@ class PolymarketDataService: ObservableObject {
     }
     
     func fetchPositions(userId: String, sizeThreshold: Double = 0.1, limit: Int = 50, offset: Int = 0, sortBy: String = "CURRENT", sortDirection: String = "DESC") async throws -> [Position] {
-        var components = URLComponents(string: "https://data-api.polymarket.com/positions")!
+        var components = URLComponents(string: "\(API.dataAPI)/positions")!
         components.queryItems = [
             .init(name: "user", value: userId),
             .init(name: "sizeThreshold", value: String(sizeThreshold)),
@@ -224,15 +235,12 @@ class PolymarketDataService: ObservableObject {
         }
         
         let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode([Position].self, from: data)
+        return try jsonDecoder.decode([Position].self, from: data)
     }
     
     func fetchCashBalance(userId: String) async throws -> Double {
-        let url = URL(string: "https://polygon-bor-rpc.publicnode.com")!
-        // USDC on Polygon (Polymarket uses this for collateral)
-        let contractAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+        let url = URL(string: API.polygonRPC)!
+        let contractAddress = API.usdcContract
         let methodId = "0x70a08231" // balanceOf(address)
         // ABI-encode: strip 0x prefix, left-pad address to 32 bytes (64 hex chars)
         let addressHex = userId.lowercased().hasPrefix("0x")
@@ -266,7 +274,7 @@ class PolymarketDataService: ObservableObject {
     }
     
     func performSearch(query: String, category: String = "all", page: Int = 1) async throws -> SearchResponse {
-        var components = URLComponents(string: "https://polymarket.com/api/events/search")!
+        var components = URLComponents(string: "\(API.searchAPI)/events/search")!
         components.queryItems = [
             URLQueryItem(name: "_c", value: category),
             URLQueryItem(name: "_q", value: query),
@@ -278,17 +286,13 @@ class PolymarketDataService: ObservableObject {
         }
         
         let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(SearchResponse.self, from: data)
+        return try jsonDecoder.decode(SearchResponse.self, from: data)
     }
     
     func fetchTags() async throws -> [Tag] {
-        let url = URL(string: "https://polymarket.com/api/tags/filteredBySlug?tag=all&status=active")!
+        let url = URL(string: "\(API.searchAPI)/tags/filteredBySlug?tag=all&status=active")!
         let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode([Tag].self, from: data)
+        return try jsonDecoder.decode([Tag].self, from: data)
     }
     
     func fetchPaginatedEvents(
@@ -301,7 +305,7 @@ class PolymarketDataService: ObservableObject {
         offset: Int = 0,
         tagSlug: String? = nil
     ) async throws -> PaginatedEventsResponse {
-        var components = URLComponents(string: "https://gamma-api.polymarket.com/events/pagination")!
+        var components = URLComponents(string: "\(API.gammaAPI)/events/pagination")!
         var queryItems = [
             URLQueryItem(name: "limit", value: String(limit)),
             URLQueryItem(name: "active", value: String(active)),
@@ -323,9 +327,20 @@ class PolymarketDataService: ObservableObject {
         }
         
         let data = try await makeRequest(url: url)
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        return try decoder.decode(PaginatedEventsResponse.self, from: data)
+        return try jsonDecoder.decode(PaginatedEventsResponse.self, from: data)
+    }
+}
+
+// MARK: - Errors
+
+enum APIError: LocalizedError {
+    case httpError(statusCode: Int, url: URL)
+    
+    var errorDescription: String? {
+        switch self {
+        case .httpError(let statusCode, let url):
+            return "HTTP \(statusCode) from \(url.host ?? url.absoluteString)"
+        }
     }
 }
 
