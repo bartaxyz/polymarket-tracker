@@ -22,6 +22,7 @@ struct HomeView: View {
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var isRefreshing: Bool = false
+    @State private var searchQuery: String = ""
     
     var selectedPosition: PolymarketDataService.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
@@ -31,7 +32,8 @@ struct HomeView: View {
 #if os(iOS)
         TabView {
             NavigationStack {
-                PortfolioTabView(wallet: wallet)
+                PortfolioTabView(wallet: wallet, searchQuery: $searchQuery)
+                    .searchable(text: $searchQuery, prompt: "Search markets...")
             }
             .tabItem {
                 Label("Portfolio", systemImage: "chart.pie")
@@ -164,6 +166,7 @@ struct HomeView: View {
 
 struct PortfolioTabView: View {
     let wallet: WalletConnectModel?
+    @Binding var searchQuery: String
     @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var isConnectWalletPresented = false
     @Environment(\.modelContext) private var modelContext
@@ -283,6 +286,37 @@ struct PortfolioTabView: View {
         .sheet(isPresented: $isConnectWalletPresented) {
             ConnectWalletManuallyView()
         }
+        .searchable(text: $searchQuery, prompt: "Search markets...")
+        .searchSuggestions {
+            if !searchQuery.isEmpty {
+                if dataService.isSearching && dataService.searchResults.isEmpty {
+                    ProgressView("Searching...")
+                } else {
+                    ForEach(dataService.searchResults, id: \.id) { event in
+                        NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
+                            SearchEventRow(event: event)
+                        }
+                        .searchCompletion(event.title)
+                    }
+                    if dataService.hasMoreSearchResults {
+                        ProgressView()
+                            .onAppear {
+                                Task { await dataService.loadMoreSearchResults() }
+                            }
+                    }
+                }
+            }
+        }
+        .onSubmit(of: .search) {
+            Task { await dataService.searchEvents(query: searchQuery) }
+        }
+        .onChange(of: searchQuery) { _, newValue in
+            if newValue.isEmpty {
+                dataService.clearSearchResults()
+            } else {
+                Task { await dataService.searchEvents(query: newValue) }
+            }
+        }
     }
     
     private func disconnectWallet() {
@@ -331,6 +365,42 @@ struct PositionRowView: View {
     }
 }
 
+
+struct SearchEventRow: View {
+    let event: PolymarketDataService.GammaEvent
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let imageUrl = event.image, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 44, height: 44)
+                .cornerRadius(10)
+            } else {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 44, height: 44)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+
+                if let volume = event.volume, volume > 0 {
+                    Text("Vol: $\(volume, specifier: "%.0f")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
 
 #Preview {
     HomeView(wallet: WalletConnectModel(
