@@ -9,7 +9,7 @@ struct SearchMarketView: View {
     @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var searchQuery = ""
     @State private var isSearchActive = false
-    @State private var searchTask: Task<Void, Never>?
+    @State private var debounceTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -57,14 +57,19 @@ struct SearchMarketView: View {
             }
         }
         .onChange(of: searchQuery) { _, newValue in
-            searchTask?.cancel()
+            debounceTask?.cancel()
             if newValue.isEmpty {
                 dataService.clearSearchResults()
             } else {
-                searchTask = Task {
+                let query = newValue
+                debounceTask = Task {
                     try? await Task.sleep(for: .milliseconds(300))
                     guard !Task.isCancelled else { return }
-                    await dataService.searchEvents(query: newValue)
+                    // Launch search in a non-cancellable detached task
+                    // so cancelling the next debounce won't kill this request
+                    Task.detached {
+                        await dataService.searchEvents(query: query)
+                    }
                 }
             }
         }

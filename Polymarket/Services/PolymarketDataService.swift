@@ -485,9 +485,10 @@ extension PolymarketDataService {
             }
             if let arr = try? container.decode([String].self, forKey: .outcomePrices) {
                 outcomePrices = arr
-            } else {
-                let str = try container.decode(String.self, forKey: .outcomePrices)
+            } else if let str = try? container.decode(String.self, forKey: .outcomePrices) {
                 outcomePrices = (try? JSONDecoder().decode([String].self, from: Data(str.utf8))) ?? []
+            } else {
+                outcomePrices = []
             }
         }
         
