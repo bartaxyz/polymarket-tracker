@@ -9,6 +9,7 @@ struct SearchMarketView: View {
     @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var searchQuery = ""
     @State private var isSearchActive = false
+    @State private var searchTask: Task<Void, Never>?
 
     var body: some View {
         Group {
@@ -56,10 +57,15 @@ struct SearchMarketView: View {
             }
         }
         .onChange(of: searchQuery) { _, newValue in
+            searchTask?.cancel()
             if newValue.isEmpty {
                 dataService.clearSearchResults()
             } else {
-                Task { await dataService.searchEvents(query: newValue) }
+                searchTask = Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    guard !Task.isCancelled else { return }
+                    await dataService.searchEvents(query: newValue)
+                }
             }
         }
     }
