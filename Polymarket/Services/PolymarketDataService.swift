@@ -454,6 +454,38 @@ extension PolymarketDataService {
         let spread: Double?
         let closed: Bool?
         let archived: Bool?
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            slug = try container.decode(String.self, forKey: .slug)
+            question = try container.decodeIfPresent(String.self, forKey: .question)
+            groupItemTitle = try container.decodeIfPresent(String.self, forKey: .groupItemTitle)
+            lastTradePrice = try container.decodeIfPresent(Double.self, forKey: .lastTradePrice)
+            bestAsk = try container.decodeIfPresent(Double.self, forKey: .bestAsk)
+            bestBid = try container.decodeIfPresent(Double.self, forKey: .bestBid)
+            spread = try container.decodeIfPresent(Double.self, forKey: .spread)
+            closed = try container.decodeIfPresent(Bool.self, forKey: .closed)
+            archived = try container.decodeIfPresent(Bool.self, forKey: .archived)
+            
+            // Gamma API returns outcomes/outcomePrices as JSON strings, not arrays
+            if let arr = try? container.decode([String].self, forKey: .outcomes) {
+                outcomes = arr
+            } else {
+                let str = try container.decode(String.self, forKey: .outcomes)
+                outcomes = (try? JSONDecoder().decode([String].self, from: Data(str.utf8))) ?? []
+            }
+            if let arr = try? container.decode([String].self, forKey: .outcomePrices) {
+                outcomePrices = arr
+            } else {
+                let str = try container.decode(String.self, forKey: .outcomePrices)
+                outcomePrices = (try? JSONDecoder().decode([String].self, from: Data(str.utf8))) ?? []
+            }
+        }
+        
+        private enum CodingKeys: String, CodingKey {
+            case slug, question, groupItemTitle, outcomes, outcomePrices
+            case lastTradePrice, bestAsk, bestBid, spread, closed, archived
+        }
     }
     
     struct Event: Decodable {

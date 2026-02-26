@@ -8,6 +8,7 @@ import SwiftUI
 struct SearchMarketView: View {
     @ObservedObject private var dataService = PolymarketDataService.shared
     @State private var searchQuery = ""
+    @State private var isSearchActive = true
 
     var body: some View {
         Group {
@@ -45,7 +46,7 @@ struct SearchMarketView: View {
             }
         }
         .navigationTitle("Search")
-        .searchable(text: $searchQuery, prompt: "Search markets...")
+        .searchable(text: $searchQuery, isPresented: $isSearchActive, prompt: "Search markets...")
         .onSubmit(of: .search) {
             Task { await dataService.searchEvents(query: searchQuery) }
         }
