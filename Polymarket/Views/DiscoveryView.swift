@@ -16,7 +16,6 @@ struct DiscoveryView: View {
     @State private var isLoadingMore = false
     @State private var hasMoreEvents = false
     @State private var currentOffset = 0
-    @State private var searchQuery = ""
     @ObservedObject private var dataService = PolymarketDataService.shared
     private let pageSize = 20
     
@@ -27,30 +26,9 @@ struct DiscoveryView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if !searchQuery.isEmpty {
-                    searchResultsView
-                } else {
-                    discoveryContentView
-                }
+                discoveryContentView
             }
-            .navigationTitle(searchQuery.isEmpty ? "Discover" : "Search Results")
-            .searchable(text: $searchQuery, prompt: "Search markets...")
-            .onSubmit(of: .search) {
-                if !searchQuery.isEmpty {
-                    Task {
-                        await dataService.searchEvents(query: searchQuery)
-                    }
-                }
-            }
-            .onChange(of: searchQuery) { _, newValue in
-                if newValue.isEmpty {
-                    dataService.clearSearchResults()
-                } else {
-                    Task {
-                        await dataService.searchEvents(query: newValue)
-                    }
-                }
-            }
+            .navigationTitle("Discover")
             .task {
                 if tags.isEmpty {
                     await loadTags()
@@ -65,40 +43,6 @@ struct DiscoveryView: View {
             }
         }
     }
-    
-    private var searchResultsView: some View {
-        Group {
-            if dataService.isSearching {
-                ProgressView("Searching...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if dataService.searchResults.isEmpty {
-                ContentUnavailableView(
-                    "No Results",
-                    systemImage: "magnifyingglass",
-                    description: Text("Try a different search term")
-                )
-            } else {
-                List {
-                    ForEach(dataService.searchResults, id: \.id) { event in
-                        NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
-                            SearchResultRowView(event: event)
-                        }
-                    }
-                    
-                    if dataService.hasMoreSearchResults {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .onAppear {
-                                Task {
-                                    await dataService.loadMoreSearchResults()
-                                }
-                            }
-                    }
-                }
-            }
-        }
-    }
-    
     private var discoveryContentView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
