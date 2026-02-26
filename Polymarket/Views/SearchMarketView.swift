@@ -42,7 +42,7 @@ struct SearchMarketView: View {
                             }
                     }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
             }
         }
         .navigationTitle("Search")
