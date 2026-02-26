@@ -274,11 +274,12 @@ class PolymarketDataService: ObservableObject {
     }
     
     func performSearch(query: String, category: String = "all", page: Int = 1) async throws -> SearchResponse {
-        var components = URLComponents(string: "\(API.searchAPI)/events/search")!
+        var components = URLComponents(string: "\(API.gammaAPI)/public-search")!
         components.queryItems = [
-            URLQueryItem(name: "_c", value: category),
-            URLQueryItem(name: "_q", value: query),
-            URLQueryItem(name: "_p", value: String(page))
+            URLQueryItem(name: "q", value: query),
+            URLQueryItem(name: "events_status", value: "active"),
+            URLQueryItem(name: "limit_per_type", value: "20"),
+            URLQueryItem(name: "page", value: String(page))
         ]
         
         guard let url = components.url else {
@@ -286,7 +287,18 @@ class PolymarketDataService: ObservableObject {
         }
         
         let data = try await makeRequest(url: url)
-        return try jsonDecoder.decode(SearchResponse.self, from: data)
+        let response = try jsonDecoder.decode(PublicSearchResponse.self, from: data)
+        return SearchResponse(events: response.events, hasMore: response.pagination?.hasMore ?? false)
+    }
+    
+    private struct PublicSearchResponse: Decodable {
+        let events: [Event]
+        let pagination: Pagination?
+        
+        struct Pagination: Decodable {
+            let hasMore: Bool?
+            let totalResults: Int?
+        }
     }
     
     func fetchTags() async throws -> [Tag] {
@@ -434,7 +446,7 @@ extension PolymarketDataService {
         let negativeRisk: Bool
     }
     
-    struct SearchResponse: Decodable {
+    struct SearchResponse {
         let events: [Event]
         let hasMore: Bool
     }
@@ -451,6 +463,39 @@ extension PolymarketDataService {
         let spread: Double?
         let closed: Bool?
         let archived: Bool?
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            slug = try container.decode(String.self, forKey: .slug)
+            question = try container.decodeIfPresent(String.self, forKey: .question)
+            groupItemTitle = try container.decodeIfPresent(String.self, forKey: .groupItemTitle)
+            lastTradePrice = try container.decodeIfPresent(Double.self, forKey: .lastTradePrice)
+            bestAsk = try container.decodeIfPresent(Double.self, forKey: .bestAsk)
+            bestBid = try container.decodeIfPresent(Double.self, forKey: .bestBid)
+            spread = try container.decodeIfPresent(Double.self, forKey: .spread)
+            closed = try container.decodeIfPresent(Bool.self, forKey: .closed)
+            archived = try container.decodeIfPresent(Bool.self, forKey: .archived)
+            
+            // Gamma API returns outcomes/outcomePrices as JSON strings, not arrays
+            if let arr = try? container.decode([String].self, forKey: .outcomes) {
+                outcomes = arr
+            } else {
+                let str = try container.decode(String.self, forKey: .outcomes)
+                outcomes = (try? JSONDecoder().decode([String].self, from: Data(str.utf8))) ?? []
+            }
+            if let arr = try? container.decode([String].self, forKey: .outcomePrices) {
+                outcomePrices = arr
+            } else if let str = try? container.decode(String.self, forKey: .outcomePrices) {
+                outcomePrices = (try? JSONDecoder().decode([String].self, from: Data(str.utf8))) ?? []
+            } else {
+                outcomePrices = []
+            }
+        }
+        
+        private enum CodingKeys: String, CodingKey {
+            case slug, question, groupItemTitle, outcomes, outcomePrices
+            case lastTradePrice, bestAsk, bestBid, spread, closed, archived
+        }
     }
     
     struct Event: Decodable {

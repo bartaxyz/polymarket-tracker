@@ -30,17 +30,21 @@ struct HomeView: View {
     var body: some View {
 #if os(iOS)
         TabView {
-            NavigationStack {
-                PortfolioTabView(wallet: wallet)
-            }
-            .tabItem {
-                Label("Portfolio", systemImage: "chart.pie")
+            Tab("Portfolio", systemImage: "chart.pie") {
+                NavigationStack {
+                    PortfolioTabView(wallet: wallet)
+                }
             }
             
-            DiscoveryView()
-                .tabItem {
-                    Label("Discover", systemImage: "sparkles")
+            Tab(role: .search) {
+                NavigationStack {
+                    SearchMarketView()
                 }
+            }
+            
+            Tab("Discover", systemImage: "sparkles") {
+                DiscoveryView()
+            }
         }
         .onChange(of: wallet) { _, wallet in
             if let address = wallet?.polymarketAddress {
@@ -253,6 +257,7 @@ struct PortfolioTabView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Portfolio")
         .refreshable {
@@ -331,6 +336,42 @@ struct PositionRowView: View {
     }
 }
 
+
+struct SearchEventRow: View {
+    let event: PolymarketDataService.GammaEvent
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if let imageUrl = event.image, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 44, height: 44)
+                .cornerRadius(10)
+            } else {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 44, height: 44)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+
+                if let volume = event.volume, volume > 0 {
+                    Text("Vol: $\(volume, specifier: "%.0f")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
 
 #Preview {
     HomeView(wallet: WalletConnectModel(
