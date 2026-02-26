@@ -257,6 +257,7 @@ struct PortfolioTabView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
         }
         .navigationTitle("Portfolio")
         .refreshable {

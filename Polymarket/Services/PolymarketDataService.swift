@@ -274,11 +274,13 @@ class PolymarketDataService: ObservableObject {
     }
     
     func performSearch(query: String, category: String = "all", page: Int = 1) async throws -> SearchResponse {
-        var components = URLComponents(string: "\(API.searchAPI)/events/search")!
+        let limit = 20
+        var components = URLComponents(string: "\(API.gammaAPI)/events")!
         components.queryItems = [
-            URLQueryItem(name: "_c", value: category),
-            URLQueryItem(name: "_q", value: query),
-            URLQueryItem(name: "_p", value: String(page))
+            URLQueryItem(name: "text_query", value: query),
+            URLQueryItem(name: "closed", value: "false"),
+            URLQueryItem(name: "limit", value: String(limit)),
+            URLQueryItem(name: "offset", value: String((page - 1) * limit))
         ]
         
         guard let url = components.url else {
@@ -286,7 +288,8 @@ class PolymarketDataService: ObservableObject {
         }
         
         let data = try await makeRequest(url: url)
-        return try jsonDecoder.decode(SearchResponse.self, from: data)
+        let events = try jsonDecoder.decode([Event].self, from: data)
+        return SearchResponse(events: events, hasMore: events.count >= limit)
     }
     
     func fetchTags() async throws -> [Tag] {
@@ -434,7 +437,7 @@ extension PolymarketDataService {
         let negativeRisk: Bool
     }
     
-    struct SearchResponse: Decodable {
+    struct SearchResponse {
         let events: [Event]
         let hasMore: Bool
     }
