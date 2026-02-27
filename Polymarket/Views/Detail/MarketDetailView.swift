@@ -142,8 +142,8 @@ struct MarketDetailView: View {
                 Button {
                     toggleWatchlist()
                 } label: {
-                    Image(systemName: isWatchlisted ? "star.fill" : "star")
-                        .foregroundColor(isWatchlisted ? .yellow : .secondary)
+                    Image(systemName: isWatchlisted ? "bookmark.fill" : "bookmark")
+                        .foregroundColor(isWatchlisted ? .accentColor : .secondary)
                 }
             }
         }

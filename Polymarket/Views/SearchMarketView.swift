@@ -54,10 +54,10 @@ struct SearchMarketView: View {
                             } label: {
                                 Label(
                                     isWatchlisted ? "Unwatch" : "Watch",
-                                    systemImage: isWatchlisted ? "star.slash" : "star"
+                                    systemImage: isWatchlisted ? "bookmark.slash" : "bookmark"
                                 )
                             }
-                            .tint(.yellow)
+                            .tint(.accentColor)
                         }
                     }
                     if dataService.hasMoreSearchResults {

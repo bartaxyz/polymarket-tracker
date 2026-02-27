@@ -42,7 +42,7 @@ struct HomeView: View {
                 }
             }
             
-            Tab("Watchlist", systemImage: "star") {
+            Tab("Watchlist", systemImage: "bookmark") {
                 NavigationStack {
                     WatchlistTabView()
                 }
@@ -388,7 +388,7 @@ struct WatchlistTabView: View {
             if watchlistItems.isEmpty {
                 ContentUnavailableView(
                     "No Watchlist Items",
-                    systemImage: "star",
+                    systemImage: "bookmark",
                     description: Text("Star markets from search or market details to add them here")
                 )
             } else {
@@ -453,7 +453,7 @@ struct WatchlistRowView: View {
             
             Spacer()
             
-            Image(systemName: "star.fill")
+            Image(systemName: "bookmark.fill")
                 .foregroundColor(.yellow)
                 .font(.caption)
         }
