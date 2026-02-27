@@ -52,6 +52,7 @@ struct HomeView: View {
                 DiscoveryView()
             }
         }
+        .environment(\.symbolVariants, .none)
         .onChange(of: wallet) { _, wallet in
             if let address = wallet?.polymarketAddress {
                 dataService.setUser(address)
