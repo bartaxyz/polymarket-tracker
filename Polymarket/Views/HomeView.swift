@@ -42,6 +42,12 @@ struct HomeView: View {
                 }
             }
             
+            Tab("Watchlist", systemImage: "star") {
+                NavigationStack {
+                    WatchlistTabView()
+                }
+            }
+            
             Tab("Discover", systemImage: "sparkles") {
                 DiscoveryView()
             }
@@ -370,6 +376,89 @@ struct SearchEventRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+}
+
+struct WatchlistTabView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \WatchlistItem.addedAt, order: .reverse) private var watchlistItems: [WatchlistItem]
+    
+    var body: some View {
+        Group {
+            if watchlistItems.isEmpty {
+                ContentUnavailableView(
+                    "No Watchlist Items",
+                    systemImage: "star",
+                    description: Text("Star markets from search or market details to add them here")
+                )
+            } else {
+                List {
+                    ForEach(watchlistItems) { item in
+                        NavigationLink(destination: MarketDetailView(market: .gammaEvent(PolymarketDataService.GammaEvent(
+                            id: item.eventId ?? "",
+                            ticker: item.eventSlug ?? "",
+                            slug: item.eventSlug ?? "",
+                            title: item.title ?? "",
+                            image: item.imageUrl
+                        )))) {
+                            WatchlistRowView(item: item)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        for index in indexSet {
+                            modelContext.delete(watchlistItems[index])
+                        }
+                    }
+                }
+                .listStyle(.insetGrouped)
+            }
+        }
+        .navigationTitle("Watchlist")
+    }
+}
+
+struct WatchlistRowView: View {
+    let item: WatchlistItem
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            if let imageUrl = item.imageUrl, let url = URL(string: imageUrl) {
+                AsyncImage(url: url) { image in
+                    image.resizable().aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 44, height: 44)
+                .cornerRadius(10)
+            } else {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 44, height: 44)
+                    .overlay {
+                        Image(systemName: "eye")
+                            .foregroundColor(.secondary)
+                    }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title ?? "")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                
+                Text("Watching")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            Image(systemName: "star.fill")
+                .foregroundColor(.yellow)
+                .font(.caption)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
     }
 }
 

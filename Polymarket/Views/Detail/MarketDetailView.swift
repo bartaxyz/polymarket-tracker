@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct MarketDetailView: View {
     enum Market {
@@ -105,6 +106,13 @@ struct MarketDetailView: View {
     
     let market: Market
     
+    @Environment(\.modelContext) private var modelContext
+    @Query private var watchlistItems: [WatchlistItem]
+    
+    private var isWatchlisted: Bool {
+        watchlistItems.contains { $0.eventId == market.id }
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -129,6 +137,16 @@ struct MarketDetailView: View {
             .padding()
         }
         .navigationTitle("Market Details")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    toggleWatchlist()
+                } label: {
+                    Image(systemName: isWatchlisted ? "star.fill" : "star")
+                        .foregroundColor(isWatchlisted ? .yellow : .secondary)
+                }
+            }
+        }
     }
     
     private var headerView: some View {
@@ -240,6 +258,20 @@ struct MarketDetailView: View {
     }
     
     // Helper methods
+    private func toggleWatchlist() {
+        if let existing = watchlistItems.first(where: { $0.eventId == market.id }) {
+            modelContext.delete(existing)
+        } else {
+            let item = WatchlistItem(
+                eventId: market.id,
+                eventSlug: market.slug,
+                title: market.title,
+                imageUrl: market.imageUrl
+            )
+            modelContext.insert(item)
+        }
+    }
+    
     private func formatNumber(_ number: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal

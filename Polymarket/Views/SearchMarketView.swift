@@ -4,9 +4,12 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct SearchMarketView: View {
     @ObservedObject private var dataService = PolymarketDataService.shared
+    @Environment(\.modelContext) private var modelContext
+    @Query private var watchlistItems: [WatchlistItem]
     @State private var searchQuery = ""
     @State private var isSearchActive = false
     @State private var debounceTask: Task<Void, Never>?
@@ -33,6 +36,28 @@ struct SearchMarketView: View {
                     ForEach(dataService.searchResults, id: \.id) { event in
                         NavigationLink(destination: MarketDetailView(market: .gammaEvent(event))) {
                             SearchEventRow(event: event)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            let isWatchlisted = watchlistItems.contains { $0.eventId == event.id }
+                            Button {
+                                if let existing = watchlistItems.first(where: { $0.eventId == event.id }) {
+                                    modelContext.delete(existing)
+                                } else {
+                                    let item = WatchlistItem(
+                                        eventId: event.id,
+                                        eventSlug: event.slug,
+                                        title: event.title,
+                                        imageUrl: event.image
+                                    )
+                                    modelContext.insert(item)
+                                }
+                            } label: {
+                                Label(
+                                    isWatchlisted ? "Unwatch" : "Watch",
+                                    systemImage: isWatchlisted ? "star.slash" : "star"
+                                )
+                            }
+                            .tint(.yellow)
                         }
                     }
                     if dataService.hasMoreSearchResults {

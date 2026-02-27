@@ -11,10 +11,10 @@ import SwiftData
 enum SharedModelContainer {
     static let container: ModelContainer = {
         let config = ModelConfiguration(
-            schema: Schema([WalletConnectModel.self]),
+            schema: Schema([WalletConnectModel.self, WatchlistItem.self, WatchlistGroup.self]),
             groupContainer: .identifier("group.com.ondrejbarta.Polymarket"),
             cloudKitDatabase: .automatic,
         )
-        return try! ModelContainer(for: WalletConnectModel.self, configurations: config)
+        return try! ModelContainer(for: WalletConnectModel.self, WatchlistItem.self, WatchlistGroup.self, configurations: config)
     }()
 }
