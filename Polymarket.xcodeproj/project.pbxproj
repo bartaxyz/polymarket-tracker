@@ -69,6 +69,7 @@
 				Components/Tag.swift,
 				Components/TagButton.swift,
 				Models/WalletConnectModel.swift,
+				Models/WatchlistGroup.swift,
 				Models/WatchlistItem.swift,
 				Services/PolymarketDataService.swift,
 				SharedModelContainer.swift,
