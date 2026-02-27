@@ -251,7 +251,8 @@ struct PortfolioTabView: View {
                                 Button("Connect Wallet") {
                                     isConnectWalletPresented = true
                                 }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.glassProminent)
+                                .controlSize(.large)
                             }
                             .padding(.top, 60)
                         }
@@ -265,6 +266,7 @@ struct PortfolioTabView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .navigationTitle("Portfolio")
         .refreshable {
