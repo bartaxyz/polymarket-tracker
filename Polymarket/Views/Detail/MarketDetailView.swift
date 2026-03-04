@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Charts
 
 struct MarketDetailView: View {
     enum Market {
@@ -102,20 +103,96 @@ struct MarketDetailView: View {
                 return event.tags
             }
         }
+        
+        var volume24hr: Double? {
+            switch self {
+            case .event(let event): return event.volume
+            case .gammaEvent(let event): return event.volume24hr
+            }
+        }
+        
+        var volume1wk: Double? {
+            switch self {
+            case .event: return nil
+            case .gammaEvent(let event): return event.volume1wk
+            }
+        }
+        
+        var volume1mo: Double? {
+            switch self {
+            case .event: return nil
+            case .gammaEvent(let event): return event.volume1mo
+            }
+        }
+        
+        var openInterest: Double? {
+            switch self {
+            case .event(let event): return nil
+            case .gammaEvent(let event): return event.openInterest
+            }
+        }
+        
+        var commentCount: Int? {
+            switch self {
+            case .event: return nil
+            case .gammaEvent(let event): return event.commentCount
+            }
+        }
+        
+        var competitive: Double? {
+            switch self {
+            case .event: return nil
+            case .gammaEvent(let event): return event.competitive
+            }
+        }
+        
+        var resolutionSource: String? {
+            switch self {
+            case .event: return nil
+            case .gammaEvent(let event): return event.resolutionSource
+            }
+        }
+        
+        var startDate: String? {
+            switch self {
+            case .event: return nil
+            case .gammaEvent(let event): return event.startDate
+            }
+        }
     }
     
     let market: Market
     
     @Environment(\.modelContext) private var modelContext
     @Query private var watchlistItems: [WatchlistItem]
+    @State private var priceHistory: [PolymarketDataService.PnLDataPoint] = []
+    @State private var isLoadingChart = false
+    @State private var selectedRange: PolymarketDataService.PnLRange = .max
+    @ObservedObject private var dataService = PolymarketDataService.shared
     
     private var isWatchlisted: Bool {
         watchlistItems.contains { $0.eventId == market.id }
     }
     
+    /// Extract the first CLOB token ID from the market's outcomes for price history
+    private var firstTokenId: String? {
+        guard let markets = market.markets, let first = markets.first,
+              let clobTokenIds = first.clobTokenIds,
+              let data = clobTokenIds.data(using: .utf8),
+              let ids = try? JSONDecoder().decode([String].self, from: data),
+              let firstId = ids.first
+        else { return nil }
+        return firstId
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // Price History Chart
+                if firstTokenId != nil {
+                    priceChartView
+                }
+                
                 // Header with image and title
                 headerView
                 
@@ -137,6 +214,9 @@ struct MarketDetailView: View {
             .padding()
         }
         .navigationTitle("Market Details")
+        .task {
+            await loadPriceHistory()
+        }
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Button {
@@ -147,6 +227,55 @@ struct MarketDetailView: View {
                 }
             }
         }
+    }
+    
+    private var priceChartView: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Price History")
+                .font(.headline)
+                .padding(.bottom, 4)
+            
+            Picker("Range", selection: $selectedRange) {
+                ForEach(PolymarketDataService.PnLRange.allCases, id: \.self) { range in
+                    Text(range.label).tag(range)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedRange) {
+                Task { await loadPriceHistory() }
+            }
+            
+            if isLoadingChart {
+                ProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else if priceHistory.isEmpty {
+                Text("No chart data available")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 200)
+            } else {
+                ProfitLossChart(
+                    data: priceHistory,
+                    range: selectedRange,
+                    hideWatermark: true
+                )
+                .frame(height: 200)
+            }
+        }
+    }
+    
+    private func loadPriceHistory() async {
+        guard let tokenId = firstTokenId else { return }
+        isLoadingChart = true
+        do {
+            priceHistory = try await dataService.fetchTokenPriceHistory(
+                tokenId: tokenId,
+                interval: selectedRange.interval,
+                fidelity: 60
+            )
+        } catch {
+            priceHistory = []
+        }
+        isLoadingChart = false
     }
     
     private var headerView: some View {
@@ -182,20 +311,61 @@ struct MarketDetailView: View {
     }
     
     private var detailsView: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Market Details")
                 .font(.headline)
                 .padding(.bottom, 4)
             
+            // Row 1: Volume & Liquidity
             HStack(spacing: 16) {
-                MarketStatView(title: "Volume", value: formatNumber(market.volume ?? 0))
+                MarketStatView(title: "Total Volume", value: formatNumber(market.volume ?? 0))
                 
                 if let liquidity = market.liquidity {
                     MarketStatView(title: "Liquidity", value: formatNumber(liquidity))
                 }
                 
+                if let oi = market.openInterest, oi > 0 {
+                    MarketStatView(title: "Open Interest", value: formatNumber(oi))
+                }
+            }
+            
+            // Row 2: Volume breakdown
+            if market.volume24hr != nil || market.volume1wk != nil || market.volume1mo != nil {
+                HStack(spacing: 16) {
+                    if let v24 = market.volume24hr {
+                        MarketStatView(title: "24h Vol", value: formatNumber(v24))
+                    }
+                    if let v1w = market.volume1wk {
+                        MarketStatView(title: "1W Vol", value: formatNumber(v1w))
+                    }
+                    if let v1m = market.volume1mo {
+                        MarketStatView(title: "1M Vol", value: formatNumber(v1m))
+                    }
+                }
+            }
+            
+            // Row 3: Dates & meta
+            HStack(spacing: 16) {
                 if let endDate = market.endDate {
-                    MarketStatView(title: "End Date", value: formatDate(endDate))
+                    MarketStatView(title: "End Date", value: formatDatePretty(endDate))
+                }
+                if let startDate = market.startDate {
+                    MarketStatView(title: "Start Date", value: formatDatePretty(startDate))
+                }
+                if let comments = market.commentCount, comments > 0 {
+                    MarketStatView(title: "Comments", value: "\(comments)")
+                }
+            }
+            
+            // Row 4: Competitive score & resolution
+            if market.competitive != nil || (market.resolutionSource != nil && !market.resolutionSource!.isEmpty) {
+                HStack(spacing: 16) {
+                    if let comp = market.competitive {
+                        MarketStatView(title: "Competitive", value: String(format: "%.1f%%", comp * 100))
+                    }
+                    if let res = market.resolutionSource, !res.isEmpty {
+                        MarketStatView(title: "Resolution", value: res)
+                    }
                 }
             }
             
@@ -212,12 +382,52 @@ struct MarketDetailView: View {
             
             ForEach(markets, id: \.id) { market in
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(market.question)
+                    // Question / group title
+                    Text(market.groupItemTitle ?? market.question)
                         .font(.subheadline)
                         .fontWeight(.medium)
                     
-                    if let outcomes = market.outcomes, !outcomes.isEmpty {
-                        outcomesList(outcomes: decodeOutcomes(outcomes))
+                    // Pricing row: Bid / Ask / Spread / Last (always show all fields)
+                    HStack(spacing: 12) {
+                        MiniStatView(title: "Bid", value: market.bestBid.map { formatPrice($0) } ?? "—", color: .green)
+                        MiniStatView(title: "Ask", value: market.bestAsk.map { formatPrice($0) } ?? "—", color: .red)
+                        MiniStatView(title: "Spread", value: market.spread.map { formatPrice($0) } ?? "—", color: .secondary)
+                        MiniStatView(title: "Last", value: market.lastTradePrice.map { formatPrice($0) } ?? "—", color: .primary)
+                    }
+                    
+                    // Price changes
+                    let changes = [
+                        ("1h", market.oneHourPriceChange),
+                        ("1d", market.oneDayPriceChange),
+                        ("1w", market.oneWeekPriceChange)
+                    ].compactMap { label, val -> (String, Double)? in
+                        guard let v = val else { return nil }
+                        return (label, v)
+                    }
+                    if !changes.isEmpty {
+                        HStack(spacing: 12) {
+                            ForEach(changes, id: \.0) { label, change in
+                                HStack(spacing: 2) {
+                                    Text(label)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(String(format: "%+.1f¢", change * 100))
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(change >= 0 ? .green : .red)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Liquidity per outcome (always show)
+                    HStack(spacing: 4) {
+                        Text("Liquidity:")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(market.liquidityNum.map { $0 > 0 ? formatNumber($0) : "—" } ?? "—")
+                            .font(.caption)
+                            .fontWeight(.medium)
                     }
                     
                     Divider()
@@ -286,10 +496,42 @@ struct MarketDetailView: View {
         }
     }
     
-    private func formatDate(_ dateString: String) -> String {
-        // Simple formatting for now - this could be enhanced
-        // with proper date parsing and formatting
+    private func formatPrice(_ price: Double) -> String {
+        // All prediction market prices are 0–1, show consistently in cents
+        let cents = price * 100
+        if cents == 0 {
+            return "0¢"
+        } else if cents < 1 {
+            return String(format: "%.1f¢", cents)
+        } else if cents == cents.rounded() {
+            return String(format: "%.0f¢", cents)
+        } else {
+            return String(format: "%.1f¢", cents)
+        }
+    }
+    
+    private func formatDatePretty(_ dateString: String) -> String {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = isoFormatter.date(from: dateString) {
+            let df = DateFormatter()
+            df.dateStyle = .medium
+            df.timeStyle = .none
+            return df.string(from: date)
+        }
+        // Fallback: try without fractional seconds
+        isoFormatter.formatOptions = [.withInternetDateTime]
+        if let date = isoFormatter.date(from: dateString) {
+            let df = DateFormatter()
+            df.dateStyle = .medium
+            df.timeStyle = .none
+            return df.string(from: date)
+        }
         return dateString
+    }
+    
+    private func formatDate(_ dateString: String) -> String {
+        return formatDatePretty(dateString)
     }
     
     private func decodeOutcomes(_ outcomesString: String) -> [String] {
@@ -301,6 +543,25 @@ struct MarketDetailView: View {
         
         // Fallback to comma-separated values if not JSON
         return outcomesString.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+    }
+}
+
+// Compact stat for per-outcome pricing
+private struct MiniStatView: View {
+    let title: String
+    let value: String
+    var color: Color = .primary
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(color)
+        }
     }
 }
 

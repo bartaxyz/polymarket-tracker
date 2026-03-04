@@ -192,6 +192,31 @@ class PolymarketDataService: ObservableObject {
         return value
     }
     
+    func fetchTokenPriceHistory(tokenId: String, interval: PnLInterval = .max, fidelity: Int = 60) async throws -> [PnLDataPoint] {
+        var components = URLComponents(string: "https://clob.polymarket.com/prices-history")!
+        components.queryItems = [
+            URLQueryItem(name: "market", value: tokenId),
+            URLQueryItem(name: "interval", value: interval.rawValue),
+            URLQueryItem(name: "fidelity", value: String(fidelity))
+        ]
+        guard let url = components.url else { throw URLError(.badURL) }
+        let data = try await makeRequest(url: url)
+        
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let history = json["history"] as? [[String: Any]]
+        else { return [] }
+        
+        return history.compactMap { dict in
+            guard let t = dict["t"] as? Int,
+                  let p = dict["p"] as? Double
+            else { return nil }
+            return PnLDataPoint(
+                t: Date(timeIntervalSince1970: TimeInterval(t)),
+                p: p
+            )
+        }
+    }
+    
     func fetchPnL(userId: String, interval: PnLInterval = .max, fidelity: PnLFidelity? = .oneHour) async throws -> [PnLDataPoint] {
         let effectiveFidelity = fidelity ?? interval.defaultFidelity
         let url = URL(string: "\(API.pnlAPI)/user-pnl?user_address=\(userId)&interval=\(interval.rawValue)&fidelity=\(effectiveFidelity.rawValue)")!
@@ -463,6 +488,7 @@ extension PolymarketDataService {
         let spread: Double?
         let closed: Bool?
         let archived: Bool?
+        let liquidityNum: Double?
         
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -475,6 +501,7 @@ extension PolymarketDataService {
             spread = try container.decodeIfPresent(Double.self, forKey: .spread)
             closed = try container.decodeIfPresent(Bool.self, forKey: .closed)
             archived = try container.decodeIfPresent(Bool.self, forKey: .archived)
+            liquidityNum = try container.decodeIfPresent(Double.self, forKey: .liquidityNum)
             
             // Gamma API returns outcomes/outcomePrices as JSON strings, not arrays
             if let arr = try? container.decode([String].self, forKey: .outcomes) {
@@ -494,7 +521,7 @@ extension PolymarketDataService {
         
         private enum CodingKeys: String, CodingKey {
             case slug, question, groupItemTitle, outcomes, outcomePrices
-            case lastTradePrice, bestAsk, bestBid, spread, closed, archived
+            case lastTradePrice, bestAsk, bestBid, spread, closed, archived, liquidityNum
         }
     }
     
@@ -526,6 +553,7 @@ extension PolymarketDataService {
                     closed: market.closed,
                     archived: market.archived,
                     groupItemTitle: market.groupItemTitle,
+                    liquidityNum: market.liquidityNum,
                     spread: market.spread,
                     lastTradePrice: market.lastTradePrice,
                     bestBid: market.bestBid,
