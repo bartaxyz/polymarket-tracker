@@ -6,13 +6,65 @@
 //
 
 import SwiftUI
+import Charts
 
 struct PositionDetailView: View {
     var position: PolymarketDataService.Position
     @ObservedObject private var dataService = PolymarketDataService.shared
+    @State private var priceHistory: [PolymarketDataService.PnLDataPoint] = []
+    @State private var isLoadingChart = false
+    @State private var selectedRange: PolymarketDataService.PnLRange = .max
+    
+    private var intervalForRange: PolymarketDataService.PnLInterval {
+        selectedRange.interval
+    }
+    
+    private var fidelityForRange: Int {
+        switch selectedRange {
+        case .today, .day: return 60
+        case .week: return 60
+        case .month: return 60
+        case .max: return 60
+        }
+    }
     
     var body: some View {
         List {
+            // Price Chart
+            Section {
+                VStack(alignment: .leading, spacing: 8) {
+                    // Range selector
+                    Picker("Range", selection: $selectedRange) {
+                        ForEach(PolymarketDataService.PnLRange.allCases, id: \.self) { range in
+                            Text(range.label).tag(range)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: selectedRange) {
+                        Task { await loadPriceHistory() }
+                    }
+                    
+                    if isLoadingChart {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else if priceHistory.isEmpty {
+                        Text("No chart data available")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else {
+                        ProfitLossChart(
+                            data: priceHistory,
+                            range: selectedRange,
+                            hideWatermark: true
+                        )
+                        .frame(height: 200)
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Price History")
+            }
+            
             // Header with Title and Status
             Section {
                 VStack(alignment: .leading, spacing: 12) {
@@ -151,6 +203,23 @@ struct PositionDetailView: View {
         #else
         .listStyle(.inset)
         #endif
+        .task {
+            await loadPriceHistory()
+        }
+    }
+    
+    private func loadPriceHistory() async {
+        isLoadingChart = true
+        do {
+            priceHistory = try await dataService.fetchTokenPriceHistory(
+                tokenId: position.asset,
+                interval: intervalForRange,
+                fidelity: fidelityForRange
+            )
+        } catch {
+            priceHistory = []
+        }
+        isLoadingChart = false
     }
 }
 
