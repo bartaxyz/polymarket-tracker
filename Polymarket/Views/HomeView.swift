@@ -22,32 +22,31 @@ struct HomeView: View {
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var isRefreshing: Bool = false
-    @State private var selectedTab: Int = 0
-    
+
     var selectedPosition: PolymarketDataService.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
     }
-    
+
     var body: some View {
 #if os(iOS)
-        TabView(selection: $selectedTab) {
-            Tab("Portfolio", systemImage: "chart.pie", value: 0) {
+        TabView {
+            Tab("Portfolio", systemImage: "chart.pie") {
                 NavigationStack {
                     PortfolioTabView(wallet: wallet)
                 }
             }
 
-            Tab("Watchlist", systemImage: "bookmark", value: 1) {
+            Tab("Watchlist", systemImage: "bookmark") {
                 NavigationStack {
                     WatchlistTabView()
                 }
             }
 
-            Tab("Discover", systemImage: "sparkles", value: 2) {
+            Tab("Discover", systemImage: "sparkles") {
                 DiscoveryView()
             }
 
-            Tab("Search", systemImage: "magnifyingglass", value: 3, role: .search) {
+            Tab(role: .search) {
                 NavigationStack {
                     SearchMarketView()
                 }
