@@ -22,6 +22,7 @@ struct HomeView: View {
     @State private var isConnectWalletPresented = false
     @State private var selectedPositionId: String?
     @State private var isRefreshing: Bool = false
+    @State private var selectedTab: Int = 0
     
     var selectedPosition: PolymarketDataService.Position? {
         dataService.positions?.first { $0.conditionId == selectedPositionId }
@@ -29,27 +30,27 @@ struct HomeView: View {
     
     var body: some View {
 #if os(iOS)
-        TabView {
-            Tab("Portfolio", systemImage: "chart.pie") {
+        TabView(selection: $selectedTab) {
+            Tab("Portfolio", systemImage: "chart.pie", value: 0) {
                 NavigationStack {
                     PortfolioTabView(wallet: wallet)
                 }
             }
-            
-            Tab(role: .search) {
-                NavigationStack {
-                    SearchMarketView()
-                }
-            }
-            
-            Tab("Watchlist", systemImage: "bookmark") {
+
+            Tab("Watchlist", systemImage: "bookmark", value: 1) {
                 NavigationStack {
                     WatchlistTabView()
                 }
             }
-            
-            Tab("Discover", systemImage: "sparkles") {
+
+            Tab("Discover", systemImage: "sparkles", value: 2) {
                 DiscoveryView()
+            }
+
+            Tab("Search", systemImage: "magnifyingglass", value: 3, role: .search) {
+                NavigationStack {
+                    SearchMarketView()
+                }
             }
         }
         .environment(\.symbolVariants, .none)
